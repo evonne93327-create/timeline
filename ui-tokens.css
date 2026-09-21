@@ -1,0 +1,133 @@
+/* ==========================================================
+   ui-tokens.css — 全站設計變數
+
+   顏色沿用「世界觀架構工作台」那一套（暖調咖啡／奶油），
+   兩個 app 放在一起看才像同一個系列，而不是各做各的。
+   夜間配色是在那邊實機調過的，直接搬過來不要再重調一次。
+
+   所有元件樣式只「引用」這裡的變數，不自己寫死數字。
+   ========================================================== */
+
+:root {
+  /* ---------- 顏色 ---------- */
+  --bg-main: #F3EEE2;
+  --bg-card: #FFFDF8;
+  --bg-rail: #EAE3D2;
+  --bg-sunken: #ECE5D4;
+  --border: #E1D7C1;
+  --border-soft: #EBE2CC;
+  --border-focus: #5A6D82;
+
+  --text-primary: #2A2420;
+  --text-secondary: #6E6152;
+  --text-muted: #A0937E;
+
+  --accent: #AC3B2A;
+  --accent-hover: #8C2E20;
+  /* 強調色拿來「寫字」時用這個。同一個顏色當色塊夠、變成細筆畫就不夠讀 */
+  --accent-text: #AC3B2A;
+  --accent-light: #F6E2DA;
+  --accent-line: #E6BBAC;
+
+  --danger: #B23A2E;
+  --danger-hover: #93291F;
+  --danger-light: #F7E1DC;
+
+  /* 鋪在 accent／danger 底色上的文字。夜間的強調色是亮的，
+     再壓白字會看不清楚，所以這個值兩個主題是相反的。 */
+  --on-accent: #FFFFFF;
+
+  /* 時間軸那條線與節點 */
+  --axis-line: #DCD0B8;
+  /* 圓點外圈要跟「圓點背後那塊」同色才切得乾淨——那塊是頁面底色 bg-main，
+     不是卡片底色。用錯的話圓點周圍會浮一圈淺色光暈。 */
+  --axis-dot-ring: #F3EEE2;
+
+  --shadow-sm: 0 1px 2px rgba(42,36,32,0.06);
+  --shadow-md: 0 6px 18px rgba(42,36,32,0.10);
+  --shadow-lg: 0 16px 40px -8px rgba(42,36,32,0.22);
+
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+
+  /* ---------- 字體 ---------- */
+  --font-ui: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+  --font-display: 'Noto Serif TC', serif;
+
+  --fs-10: 10px;
+  --fs-12: 12px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-18: 18px;
+  --fs-20: 20px;
+  --fs-22: 22px;
+
+  /* ---------- 間距 ---------- */
+  --sp-2: 2px;  --sp-4: 4px;  --sp-6: 6px;  --sp-8: 8px;
+  --sp-10: 10px; --sp-12: 12px; --sp-14: 14px; --sp-16: 16px;
+  --sp-20: 20px; --sp-24: 24px; --sp-28: 28px; --sp-32: 32px;
+
+  /* ---------- 圓角 ---------- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 12px;
+  --radius-round: 20px;
+  --radius-full: 50%;
+
+  /* ---------- 圖示尺寸 ---------- */
+  --icon-24: 24px;
+  --icon-28: 28px;
+  --icon-40: 40px;
+  --icon-44: 44px;
+
+  --fab-bottom: calc(16px + var(--safe-b));
+  --z-fab: 50;
+  --z-popover: 60;
+  --z-modal: 100;
+}
+
+/* ==========================================================
+   夜間模式
+
+   只覆蓋顏色，字級／間距／圓角一律沿用上面那份。
+
+   不用 @media (prefers-color-scheme) 直接切樣式，而是由 js/theme.js
+   把解析後的結果寫成 <html data-theme="light|dark">。分類色是 JS 直接
+   寫進 style 的，媒體查詢管不到；讓 JS 當唯一的判斷來源，才不會出現
+   一半亮一半暗的畫面。
+   ========================================================== */
+:root[data-theme="dark"] {
+  --bg-main: #1E1A16;
+  --bg-card: #26221C;
+  --bg-rail: #15120F;
+  /* 日間的 sunken 比卡片暗（凹進去）。深色底沿用同一個邏輯會讓控制項
+     比周圍更暗，看起來像洞不像按鈕，所以夜間反過來做成「浮起來」。 */
+  --bg-sunken: #383128;
+  --border: #3B342B;
+  --border-soft: #2E2821;
+  --border-focus: #8FA4BC;
+
+  --text-primary: #D6CFC5;
+  --text-secondary: #BCB0A0;
+  --text-muted: #A89C8B;
+
+  --accent: #C4634F;
+  --accent-hover: #D9755F;
+  --accent-text: #D2775F;
+  --accent-light: #3B2520;
+  --accent-line: #71392D;
+  --on-accent: #1C0D09;
+
+  --danger: #E4786C;
+  --danger-hover: #F09184;
+  --danger-light: #3C231F;
+
+  --axis-line: #3B342B;
+  --axis-dot-ring: #1E1A16;
+
+  /* 深色底上的陰影要靠純黑才看得出來，帶暖色的那組會整個消失 */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.45);
+  --shadow-md: 0 6px 18px rgba(0,0,0,0.42);
+  --shadow-lg: 0 16px 40px -8px rgba(0,0,0,0.60);
+}
