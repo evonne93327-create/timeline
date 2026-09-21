@@ -214,11 +214,19 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 }
 .toast.active { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
 
-/* ---------- 彈窗 ---------- */
+/* ---------- 彈窗 ----------
+
+   整組彈窗（遮罩、卡片、標題列、按鈕、表單）都對齊姊妹專案
+   「世界觀架構工作台」那一套：遮罩是帶暖調的半透明 + 4px 模糊，
+   卡片固定寬、內距 22、圓角 lg。兩個 app 是同一個系列，彈窗是
+   使用者在兩邊之間切換時看最多的東西，長得不一樣馬上就感覺得出來。 */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
+  /* 純黑遮罩配這組暖調米色會發灰。用帶暖調的深褐，底下的畫面暗下去
+     之後還是同一個色系。 */
+  background: rgba(42,36,32,0.45);
+  backdrop-filter: blur(4px);
   display: none;
   align-items: center;
   justify-content: center;
@@ -228,63 +236,100 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .modal-overlay.active { display: flex; }
 
 .modal-card {
-  width: 100%;
-  max-width: 460px;
-  max-height: calc(100vh - 32px);
+  /* width 固定、max-width:100% 收尾——手機上靠 max-width 縮到滿版，
+     電腦上不會被內容拉寬。 */
+  width: 440px;
+  max-width: 100%;
+  max-height: 85vh;
   overflow-y: auto;
   background: var(--bg-card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  padding: var(--sp-20);
+  padding: var(--sp-22);
   display: flex;
   flex-direction: column;
   gap: var(--sp-14);
 }
 
-.modal-head { display: flex; align-items: center; gap: var(--sp-8); }
-.modal-title { flex: 1; font-family: var(--font-display); font-size: var(--fs-18); font-weight: 700; }
-.modal-head .icon-btn { width: var(--icon-28); height: var(--icon-28); font-size: var(--fs-14); }
+/* 每個彈窗的寬度跟工作台那邊「同一類型」的彈窗對齊：
+   表單類 460、總表 440、單一選擇 400、通知 420。 */
+#eventModal .modal-card { width: 460px; }
+#storageModal .modal-card { width: 460px; }
+#timelineEditModal .modal-card { width: 420px; }
+#updateModal .modal-card { width: 420px; }
+#appearanceModal .modal-card { width: 400px; }
 
-.modal-actions { display: flex; align-items: center; gap: var(--sp-8); flex-wrap: wrap; }
+/* 標題靠左、關閉叉叉靠右。用一般的 flex 子元素而不是絕對定位，
+   因為 .modal-card 會 overflow-y: auto，絕對定位的叉叉會跟著內容捲走。 */
+.modal-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-10); }
+.modal-title { font-family: var(--font-display); font-size: var(--fs-16); font-weight: 700; }
+.modal-head .modal-title { flex: 1; min-width: 0; }
+.modal-head .icon-btn {
+  width: var(--icon-28);
+  height: var(--icon-28);
+  font-size: var(--fs-14);
+  border-radius: var(--radius-sm);
+}
+
+.modal-actions { display: flex; align-items: center; gap: var(--sp-8); flex-wrap: wrap; margin-top: var(--sp-6); }
 .spacer { flex: 1; }
 
 /* ---------- 表單 ---------- */
 .field { display: flex; flex-direction: column; gap: var(--sp-6); }
-.field-label { font-size: var(--fs-12); font-weight: 700; color: var(--text-secondary); }
+/* 工作台那邊的欄位標籤是「12px 次要色、不加粗」。加粗的版本會跟
+   彈窗標題搶，一整排下來像每個欄位都是小標題。 */
+.field-label { font-size: var(--fs-12); color: var(--text-secondary); }
 .field-row { display: flex; gap: var(--sp-8); align-items: stretch; }
 .field-row .input { flex: 1; min-width: 0; }
-.field-hint { margin: 0; font-size: var(--fs-12); color: var(--text-muted); line-height: 1.7; }
+/* 說明文字用次要色不用 muted——muted 是拿來寫「附註的附註」的，
+   彈窗裡的說明是要讀的。 */
+.field-hint { margin: 0; font-size: var(--fs-12); color: var(--text-secondary); line-height: 1.7; }
+/* 彈窗裡的主要說明段落（存檔失敗的詳情那種），比 field-hint 大一級 */
+.modal-lead { margin: 0; font-size: var(--fs-13); color: var(--text-primary); line-height: 1.7; }
+.modal-warn { margin: 0; font-size: var(--fs-13); color: var(--danger); line-height: 1.7; font-weight: 600; }
 
 .input {
   width: 100%;
-  padding: var(--sp-10) var(--sp-12);
+  padding: var(--sp-8) var(--sp-10);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: var(--fs-16);   /* 16px 以下 iOS Safari 會在聚焦時自動放大整頁 */
+  /* 這裡刻意跟工作台不一樣：那邊是 14px，但 16px 以下 iOS Safari 會在
+     聚焦時自動放大整頁，這個 app 主要在手機上用，不能為了對齊字級把
+     那個毛病收回來。 */
+  font-size: var(--fs-16);
 }
 .input:focus { background: var(--bg-card); border-color: var(--border-focus); outline: none; }
 .textarea { resize: vertical; min-height: 84px; line-height: 1.8; font-size: var(--fs-16); }
 
+/* 按鈕跟工作台同一套：底色透明、邊框透明，由 -primary／-secondary／-danger
+   決定長相。inline-flex + gap 是為了「💾 立刻匯出備份」這種圖示配文字的
+   按鈕，用 inline-block 的話 emoji 跟文字的基線對不齊。 */
 .btn {
-  padding: var(--sp-10) var(--sp-16);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--bg-sunken);
-  font-size: var(--fs-14);
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-5);
+  padding: var(--sp-7) var(--sp-14);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  border-radius: var(--radius-md);
   cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
   white-space: nowrap;
 }
-.btn:hover { border-color: var(--text-muted); }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-.btn-ghost { background: transparent; }
-.btn-danger { background: transparent; border-color: var(--danger-light); color: var(--danger); }
+.btn-secondary { background: var(--bg-card); border-color: var(--border); color: var(--text-primary); }
+.btn-secondary:hover { background: var(--bg-sunken); }
+.btn-danger { background: var(--bg-card); border-color: var(--danger-light); color: var(--danger); }
 .btn-danger:hover { background: var(--danger-light); }
+/* 被拉成整列寬的按鈕要自己置中——.btn 是 inline-flex，預設靠左，
+   拉寬之後文字會黏在左邊。 */
+.btn-wide { flex: 1; justify-content: center; }
 
 /* ---------- 分類與圖示選擇 ---------- */
-.cat-picker, .icon-picker { display: flex; flex-wrap: wrap; gap: var(--sp-6); }
+.cat-picker { display: flex; flex-wrap: wrap; gap: var(--sp-6); }
 .cat-opt {
   padding: var(--sp-6) var(--sp-12);
   border-radius: var(--radius-pill);
@@ -295,17 +340,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 }
 .cat-opt.is-on { border-color: var(--accent); }
 
+/* 工作台的 emoji 選單是六欄的格子，不是 flex-wrap。格子排起來每一列
+   對得齊，wrap 的最後一列會孤零零地靠左。 */
+.icon-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--sp-8); }
 .icon-opt {
-  width: var(--icon-40);
-  height: var(--icon-40);
-  display: flex; align-items: center; justify-content: center;
-  font-size: var(--fs-20);
-  background: var(--bg-sunken);
-  border: 2px solid transparent;
+  font-size: var(--fs-22);
+  text-align: center;
+  padding: var(--sp-8);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
-.icon-opt.is-on { border-color: var(--accent); background: var(--accent-light); }
+.icon-opt:hover { background: var(--bg-sunken); }
+/* 工作台那邊選了就直接套用、沒有「選取中」這個狀態；這裡是表單的一部分，
+   要等按儲存，所以借用 theme-opt 那組選取樣式。 */
+.icon-opt.is-on { background: var(--accent-light); border-color: var(--accent-line); }
 
 /* ---------- 時間軸清單 ---------- */
 .tl-list { display: flex; flex-direction: column; gap: var(--sp-6); }
@@ -336,50 +386,73 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .tl-row-meta { font-size: var(--fs-12); color: var(--text-muted); }
 
 /* ---------- 設定 ---------- */
-.settings-list { display: flex; flex-direction: column; gap: var(--sp-6); }
+.settings-list { display: flex; flex-direction: column; gap: var(--sp-8); padding-top: var(--sp-4); }
+/* 每一列是一顆大圓角按鈕，點進去開各自的視窗——跟工作台的設定總表同一套。
+   底色用 bg-card（跟卡片一樣）而不是 bg-sunken，靠邊框分出來；一整排
+   凹底色看起來像表格不像可以點的東西。 */
 .settings-row {
   display: flex;
   align-items: center;
   gap: var(--sp-12);
-  padding: var(--sp-12) var(--sp-14);
-  background: var(--bg-sunken);
+  width: 100%;
+  padding: var(--sp-14) var(--sp-16);
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-ui);
   cursor: pointer;
   text-align: left;
-  width: 100%;
+  transition: background 0.15s, border-color 0.15s;
 }
-.settings-row:hover { border-color: var(--text-muted); }
+.settings-row:hover { background: var(--bg-sunken); border-color: var(--accent-line); }
+.settings-row:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
 /* 固定寬度的圖示欄，每一列的文字才會從同一個位置開始。
    裸著放的話 emoji 的字身寬度不一樣，每一列會歪一點點。 */
-.settings-row-icon { flex: 0 0 auto; width: 1.5em; text-align: center; font-size: var(--fs-18); }
-.settings-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.5; }
-.settings-row-title { font-weight: 700; font-size: var(--fs-14); }
-.settings-row-desc { font-size: var(--fs-12); color: var(--text-muted); }
-.settings-row-value { font-size: var(--fs-12); color: var(--text-secondary); flex: 0 0 auto; }
-.settings-row-go { color: var(--text-muted); flex: 0 0 auto; }
-.settings-note { margin: 0; font-size: var(--fs-12); color: var(--text-muted); line-height: 1.8; }
+.settings-row-icon { flex: 0 0 auto; width: 1.5em; text-align: center; font-size: var(--fs-20); line-height: 1; }
+.settings-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.settings-row-title { font-size: var(--fs-14); font-weight: 600; color: var(--text-primary); }
+.settings-row-desc {
+  font-size: var(--fs-12);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.settings-row-value { font-size: var(--fs-12); color: var(--text-muted); flex: 0 0 auto; }
+.settings-row-go { font-size: var(--fs-18); color: var(--text-muted); flex: 0 0 auto; line-height: 1; }
+.settings-note { margin: 0; font-size: var(--fs-12); color: var(--text-secondary); line-height: 1.5; }
+.settings-hint { font-size: var(--fs-12); color: var(--text-secondary); line-height: 1.5; }
+.settings-hint:empty { display: none; }   /* 不是「跟隨系統」時不留空行 */
 
-.theme-choice { display: flex; gap: var(--sp-8); flex-wrap: wrap; }
+/* 三選一。做成連在一起的一排，看得出來是互斥的選擇，
+   而不是三顆各自獨立的按鈕。 */
+.theme-choice { display: flex; gap: var(--sp-6); }
 .theme-opt {
   flex: 1;
-  min-width: 96px;
-  padding: var(--sp-12);
-  background: var(--bg-sunken);
-  border: 2px solid transparent;
+  padding: var(--sp-10) var(--sp-8);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  font-size: var(--fs-14);
-  font-weight: 700;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.theme-opt.is-on { border-color: var(--accent); background: var(--accent-light); color: var(--accent-text); }
+.theme-opt:hover { background: var(--bg-sunken); color: var(--text-primary); }
+.theme-opt.is-on { background: var(--accent-light); border-color: var(--accent-line); color: var(--accent-hover); }
+.theme-opt:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
 
 /* ---------- 手機 ---------- */
 @media (max-width: 600px) {
   .page { padding-left: var(--sp-12); padding-right: var(--sp-12); }
-  .modal-card { padding: var(--sp-16); gap: var(--sp-12); }
   .ev-title { font-size: var(--fs-16); }
-  .modal-actions .btn { flex: 1; }
+  /* 手機上把按鈕拉成整列寬比較好按。拉寬之後文字會黏在左邊（.btn 是
+     inline-flex，預設靠左），所以要一起補 justify-content——工作台那邊
+     對同步視窗裡被拉寬的按鈕也是這樣處理的。 */
+  .modal-actions .btn { flex: 1; justify-content: center; }
   .modal-actions .btn-danger { flex: 0 0 auto; }
 }
 
@@ -509,6 +582,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .deskbar-count { font-size: var(--fs-12); color: var(--text-muted); flex: 0 0 auto; }
+
+  /* 標題列上的「新增事件」是頁面主要的行動點，不是彈窗裡的按鈕，
+     所以不跟著 .btn 縮到 12px——工作台那邊的工具列按鈕也是自己一套尺寸。 */
+  .deskbar-inner .btn { padding: var(--sp-10) var(--sp-16); font-size: var(--fs-14); font-weight: 700; }
 
   /* 鍵盤提示。只在電腦版出現——手機上沒有 N 鍵可以按。 */
   .kbd {

@@ -479,6 +479,73 @@ async function fresh(browser, vp) {
     await ctx.close();
   }
 
+  /* 彈窗的樣式是刻意跟姊妹專案「世界觀架構工作台」對齊的。這組守的是
+     「有沒有走鐘」，不是「好不好看」——寬度、遮罩、按鈕的類別名稱這幾樣
+     一旦被改掉，兩個 app 擺在一起馬上就看得出來，但單看這一邊不會發現。 */
+  console.log('\n[15] 彈窗樣式跟世界觀架構工作台對齊');
+  {
+    const { ctx, page, errs } = await fresh(browser, { viewport: { width: 1280, height: 900 } });
+
+    const widths = await page.evaluate(() => {
+      const out = {};
+      [['settingsModal', 440], ['appearanceModal', 400], ['updateModal', 420], ['storageModal', 460]]
+        .forEach(function(pair) {
+          const m = document.getElementById(pair[0]);
+          m.classList.add('active');
+          out[pair[0]] = { got: m.querySelector('.modal-card').getBoundingClientRect().width, want: pair[1] };
+          m.classList.remove('active');
+        });
+      return out;
+    });
+    Object.keys(widths).forEach(function(id) {
+      ok(id + ' 的寬度是 ' + widths[id].want, Math.abs(widths[id].got - widths[id].want) < 1,
+         JSON.stringify(widths[id]));
+    });
+
+    const look = await page.evaluate(() => {
+      const card = document.querySelector('#settingsModal .modal-card');
+      const ov = document.getElementById('settingsModal');
+      ov.classList.add('active');
+      const cs = getComputedStyle(card), os = getComputedStyle(ov);
+      const r = {
+        blur: os.backdropFilter || os.webkitBackdropFilter,
+        overlayBg: os.backgroundColor,
+        pad: cs.paddingTop,
+        titleSize: getComputedStyle(card.querySelector('.modal-title')).fontSize,
+        /* .btn-ghost 這個類別已經沒有樣式了（改叫 .btn-secondary）。
+           HTML 裡要是還留著，那顆按鈕會變成沒有邊框沒有底色的裸按鈕。 */
+        ghostLeft: document.querySelectorAll('.btn-ghost').length
+      };
+      ov.classList.remove('active');
+      return r;
+    });
+    ok('遮罩有背景模糊', /blur/.test(look.blur || ''), look.blur);
+    ok('遮罩是暖調的深褐不是純黑', look.overlayBg === 'rgba(42, 36, 32, 0.45)', look.overlayBg);
+    ok('卡片內距是 22px', look.pad === '22px', look.pad);
+    ok('彈窗標題是 16px', look.titleSize === '16px', look.titleSize);
+    ok('沒有殘留的 .btn-ghost', look.ghostLeft === 0, String(look.ghostLeft));
+
+    // 外觀的說明只有「跟隨系統」時才有字，空的時候不該佔高度
+    const hint = await page.evaluate(async () => {
+      setThemePref('light');
+      openAppearanceModal();
+      await new Promise(r => setTimeout(r, 60));
+      const el = document.getElementById('themeAutoHint');
+      /* 看 display 而不是量高度：空的 block 本來就是 0 高，但它還在 flex
+         流裡，上面那道 14px 的 gap 一樣會算進去——留一條看不出原因的空隙。
+         :empty 那條規則要的是「整個拿掉」。 */
+      const empty = getComputedStyle(el).display;
+      setThemePref('auto');
+      await new Promise(r => setTimeout(r, 60));
+      return { empty: empty, filled: el.getBoundingClientRect().height, text: el.textContent };
+    });
+    ok('外觀的說明空的時候整條收起來', hint.empty === 'none', JSON.stringify(hint));
+    ok('選「跟隨系統」才有說明', hint.filled > 0 && /目前是/.test(hint.text), JSON.stringify(hint));
+
+    ok('沒有 JS 錯誤', errs.length === 0, errs.join(' | '));
+    await ctx.close();
+  }
+
   await browser.close();
   console.log('\n通過 ' + pass + ' 項，失敗 ' + fail + ' 項');
   process.exit(fail ? 1 : 0);
