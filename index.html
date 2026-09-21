@@ -41,6 +41,10 @@
     <div class="sidebar-list" id="sidebarList"></div>
     <button type="button" class="sidebar-add" onclick="openTimelineEditModal(null)">＋ 新增時間軸</button>
     <div class="sidebar-foot">
+      <!-- 相對路徑不是隨便寫的：兩個 app 是同一個網域下的兄弟資料夾
+           （.../timeline/ 與 .../world_2/），所以 ../world_2/ 在線上會通。
+           寫死完整網址的話本機開發就跳不過去，而且 repo 一改名就爛掉。 -->
+      <a class="sidebar-settings sidebar-sister" href="../world_2/">🌍 世界觀架構工作台</a>
       <button type="button" class="sidebar-settings" onclick="openSettingsModal()">⚙️ 設定</button>
     </div>
   </aside>
@@ -225,6 +229,17 @@
           <span class="settings-row-desc">會取代目前全部的資料（匯入前自動先備份一份）</span>
         </span>
       </button>
+
+      <!-- 用 <a> 不用 <button>：這是真的換一個網頁，中鍵開新分頁、
+           長按複製網址這些瀏覽器本來就會的事才不會被吃掉。 -->
+      <a class="settings-row" href="../world_2/">
+        <span class="settings-row-icon">🌍</span>
+        <span class="settings-row-text">
+          <span class="settings-row-title">世界觀架構工作台</span>
+          <span class="settings-row-desc">姊妹 app：文檔目錄與關係白板（資料各自獨立）</span>
+        </span>
+        <span class="settings-row-go">›</span>
+      </a>
     </div>
 
     <p class="settings-note">資料只存在這台裝置的瀏覽器裡，沒有雲端。換手機或清除瀏覽器資料之前，記得先匯出備份。</p>

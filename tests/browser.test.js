@@ -546,6 +546,41 @@ async function fresh(browser, vp) {
     await ctx.close();
   }
 
+  /* 跳到姊妹 app 的入口。兩個 app 在線上是同一個網域下的兄弟資料夾
+     （.../timeline/ 與 .../world_2/），所以路徑一定要是相對的 ../world_2/：
+     寫死完整網址的話本機開發跳不過去，repo 改名也會爛掉。 */
+  console.log('\n[16] 切換到世界觀架構工作台的入口');
+  {
+    const { ctx, page, errs } = await fresh(browser, { viewport: { width: 1440, height: 900 } });
+    const r = await page.evaluate(() => {
+      const links = Array.from(document.querySelectorAll('a[href]'))
+        .filter(a => /world_2/.test(a.getAttribute('href')));
+      const row = document.querySelector('#settingsModal a.settings-row');
+      const side = document.querySelector('.sidebar-foot .sidebar-sister');
+      openSettingsModal();
+      const rowStyle = row ? getComputedStyle(row) : null;
+      const sideStyle = side ? getComputedStyle(side) : null;
+      const sideBtn = document.querySelector('.sidebar-foot .sidebar-settings:not(.sidebar-sister)');
+      return {
+        count: links.length,
+        hrefs: links.map(a => a.getAttribute('href')),
+        rowDecoration: rowStyle && rowStyle.textDecorationLine,
+        sideDecoration: sideStyle && sideStyle.textDecorationLine,
+        // 側邊欄那兩顆要一樣寬，<a> 沒補 display:block 的話會縮成文字寬度
+        sideWidth: side ? Math.round(side.getBoundingClientRect().width) : 0,
+        btnWidth: sideBtn ? Math.round(sideBtn.getBoundingClientRect().width) : 0
+      };
+    });
+    ok('兩個版面各有一個入口', r.count === 2, JSON.stringify(r.hrefs));
+    ok('用相對路徑 ../world_2/', r.hrefs.every(h => h === '../world_2/'), JSON.stringify(r.hrefs));
+    ok('設定裡那一列沒有底線', r.rowDecoration === 'none', String(r.rowDecoration));
+    ok('側邊欄那顆沒有底線', r.sideDecoration === 'none', String(r.sideDecoration));
+    ok('側邊欄那顆跟「設定」一樣寬', r.sideWidth > 0 && r.sideWidth === r.btnWidth,
+       r.sideWidth + ' vs ' + r.btnWidth);
+    ok('沒有 JS 錯誤', errs.length === 0, errs.join(' | '));
+    await ctx.close();
+  }
+
   await browser.close();
   console.log('\n通過 ' + pass + ' 項，失敗 ' + fail + ' 項');
   process.exit(fail ? 1 : 0);

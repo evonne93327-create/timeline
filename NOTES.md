@@ -64,6 +64,32 @@
 畫面上看不太出來，因為卡片剛好把它撐開。所以 `.page` 有一行 `width: 100%`，
 那是必要的不是保險。
 
+### 兩個 app 是同一個網域下的兄弟資料夾
+
+```
+https://evonne93327-create.github.io/timeline/    ← 這裡
+https://evonne93327-create.github.io/world_2/     ← 姊妹 app
+                                    ↑ 網域相同
+```
+
+GitHub Pages 是「一個 repo 一個資料夾」，所以這兩個 app **對瀏覽器來說
+早就是同一個網站**了（同源看的是網域，不看後面的路徑）。兩件事跟著這個事實走：
+
+- **`localStorage` 是共用的同一個抽屜。** 沒有互相蓋掉純粹是因為 key 名字
+  剛好不一樣（這邊 `timeline_*`／`wb` 那邊是 `novel_*`、`world_*`、`wb_theme`）。
+  **以後加新的 key 一定要帶 `timeline_` 前綴**，不然會直接踩到那邊的資料。
+- **互跳只要相對路徑。** 側邊欄底部與設定總表各有一個入口，寫的是
+  `../world_2/`。不要改成完整網址——本機開發跳不過去，repo 改名也會爛掉。
+  第 16 組測試守這條。
+
+> 那邊還沒有跳回來的按鈕，要補的話是同一份東西反過來（`../timeline/`），
+> 外加 `a.settings-row { text-decoration: none; color: var(--text-primary); }`。
+
+合併成一個 repo 的事討論過，**目前不做**。代價是：網址變了書籤全失效、
+裝起來的 PWA 要重裝、舊的 service worker 還會留在使用者瀏覽器裡，而且
+world_2 的 Google Drive OAuth redirect 跟 Supabase 的允許網址是綁死網址的，
+路徑一改就要去後台改設定，沒改就登不進去。
+
 ### 彈窗的樣式是跟 world_2 對齊的，不是各做各的
 
 整組彈窗——遮罩、卡片、標題列、按鈕、表單欄位、設定列、主題三選一——
@@ -159,7 +185,7 @@
 
 ```bash
 python3 -m http.server 8800 &
-node tests/browser.test.js      # 96 項
+node tests/browser.test.js      # 102 項
 ```
 
 Playwright 在這個環境的路徑：
@@ -186,6 +212,7 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
 | 13 | 標題與內容在三種寬度下的對齊 |
 | 14 | 空狀態文字會跟著版面改 |
 | 15 | 彈窗樣式沒有跟 world_2 走鐘（寬度、遮罩、內距、殘留的舊類別名） |
+| 16 | 切換到 world_2 的入口（相對路徑、沒有連結底線、側邊欄那顆的寬度） |
 
 **WebKit 裝不起來**（proxy 擋掉 `cdn.playwright.dev`），所以 Safari／iOS
 專屬的問題只能靠使用者實機回報。
@@ -202,7 +229,8 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
 | 依分類篩選 | 七種分類已經有了，只差篩選的 UI |
 | 拖曳排序 | 現在只能改排序數字。手機上拖曳很難做好，要想清楚 |
 | 紀元／分段標題 | 「第一紀元」「舊曆」這種分段，會影響排序的資料結構 |
-| 跟 world_2 互通 | **目前刻意不互通**，使用者選的是「完全獨立」方案。之後要做的話，得先在 world_2 那邊給文檔加「事件時間」欄位 |
+| 跟 world_2 互通 | **資料目前刻意不互通**，使用者選的是「完全獨立」方案（互跳的連結有了，那只是換頁）。之後要做的話，得先在 world_2 那邊給文檔加「事件時間」欄位 |
+| world_2 那邊補跳回來的入口 | 這邊已經有去程，回程要在那個 repo 改 |
 
 ## 待使用者實機驗證
 

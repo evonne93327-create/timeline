@@ -404,6 +404,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   text-align: left;
   transition: background 0.15s, border-color 0.15s;
 }
+/* 這一列也可能是 <a>（跳到姊妹 app）。<a> 不吃 color 繼承也會被畫底線，
+   不關掉的話那一列會變成藍色帶底線，跟旁邊幾列長得完全不一樣。 */
+a.settings-row { text-decoration: none; color: var(--text-primary); }
 .settings-row:hover { background: var(--bg-sunken); border-color: var(--accent-line); }
 .settings-row:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
 /* 固定寬度的圖示欄，每一列的文字才會從同一個位置開始。
@@ -555,7 +558,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     text-align: left;
   }
   .sidebar-add:hover, .sidebar-settings:hover { border-color: var(--text-muted); }
-  .sidebar-foot { border-top: 1px solid var(--border-soft); padding-top: var(--sp-8); }
+  .sidebar-foot {
+    border-top: 1px solid var(--border-soft);
+    padding-top: var(--sp-8);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-6);
+  }
+  /* 側邊欄那顆「世界觀」是 <a>，只需要關掉底線與連結色。
+     它會跟旁邊那顆 <button> 一樣寬，靠的是上面那個 flex 直欄——flex 的
+     項目會被 blockify，所以 .sidebar-settings 的 width:100% 才吃得到。
+     .sidebar-foot 一旦不是 flex，這顆就會縮回文字寬度（實測 137 vs 235），
+     第 16 組測試守的就是這個。 */
+  .sidebar-sister {
+    text-decoration: none;
+    color: var(--text-primary);
+  }
 
   /* ---------- 主區的標題列 ---------- */
   .deskbar {
