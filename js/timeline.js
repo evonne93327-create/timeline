@@ -29,20 +29,85 @@ function nextSortValue() {
 
 function renderAll() {
   renderTimelineBadge();
+  renderSidebar();
   renderEvents();
 }
 
+/* 手機版的頂部與電腦版的標題列顯示的是同一組東西，只是位置不同。
+   兩邊一起更新，免得切換視窗寬度時其中一邊停在舊資料上。 */
 function renderTimelineBadge() {
   const tl = currentTimeline();
-  const icon = document.getElementById("tlIcon");
-  const name = document.getElementById("tlName");
-  const count = document.getElementById("tlCount");
-  if (icon) icon.textContent = tl ? (tl.icon || "📜") : "📜";
-  if (name) name.textContent = tl ? tl.name : "";
-  if (count) {
-    const n = eventsOfCurrentTimeline().length;
-    count.textContent = n ? n + " 件事" : "";
+  const n = eventsOfCurrentTimeline().length;
+  const countText = n ? n + " 件事" : "";
+
+  [["tlIcon", "tlName", "tlCount"], ["tlIconDesk", "tlNameDesk", "tlCountDesk"]]
+    .forEach(function(ids) {
+      const icon = document.getElementById(ids[0]);
+      const name = document.getElementById(ids[1]);
+      const count = document.getElementById(ids[2]);
+      if (icon) icon.textContent = tl ? (tl.icon || "📜") : "📜";
+      if (name) name.textContent = tl ? tl.name : "";
+      if (count) count.textContent = countText;
+    });
+
+  /* 空狀態的說明文字要跟著版面走：電腦版沒有右下角那顆浮動按鈕，
+     叫使用者去按一個看不到的東西只會讓人更困惑。 */
+  const empty = document.getElementById("emptyText");
+  if (empty) {
+    const desktop = window.matchMedia("(min-width: 900px)").matches;
+    empty.innerHTML = (desktop ? "按上面的「＋ 新增事件」" : "按右下角的 ＋") +
+      "開始記下第一件事。<br>時間可以直接寫「舊曆340年」這種，不必是真實日期。";
   }
+}
+
+/* 電腦版的側邊欄。手機版整塊被 CSS 收起來，但還是照樣重畫——
+   重畫幾個 DOM 節點的成本遠低於「忘記重畫」造成的錯亂（例如在手機上
+   改了名字，轉橫向變成電腦版時側邊欄還寫著舊名字）。 */
+function renderSidebar() {
+  const list = document.getElementById("sidebarList");
+  if (!list) return;
+  list.innerHTML = "";
+
+  appData.timelines.forEach(function(tl) {
+    const n = appData.events.filter(function(e) { return e.timelineId === tl.id; }).length;
+    const on = tl.id === activeTimelineId;
+
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "side-row" + (on ? " is-active" : "");
+    row.setAttribute("aria-current", on ? "true" : "false");
+    row.onclick = function() {
+      if (tl.id !== activeTimelineId) { activeTimelineId = tl.id; saveData(); renderAll(); }
+    };
+
+    const icon = document.createElement("span");
+    icon.className = "side-row-icon";
+    icon.textContent = tl.icon || "📜";
+
+    const text = document.createElement("span");
+    text.className = "side-row-text";
+    const nameEl = document.createElement("span");
+    nameEl.className = "side-row-name";
+    nameEl.textContent = tl.name;
+    const metaEl = document.createElement("span");
+    metaEl.className = "side-row-meta";
+    metaEl.textContent = n + " 件事";
+    text.appendChild(nameEl);
+    text.appendChild(metaEl);
+
+    const edit = document.createElement("span");
+    edit.className = "side-row-edit";
+    edit.title = "編輯這條時間軸";
+    edit.textContent = "✎";
+    /* 用 span 而不是巢狀的 <button>：按鈕裡面不能再放按鈕（HTML 不合法，
+       瀏覽器會把它拆到外面去，版面就散了）。stopPropagation 擋住外層的切換。 */
+    edit.onclick = function(e) { e.stopPropagation(); openTimelineEditModal(tl.id); };
+
+    row.appendChild(icon);
+    row.appendChild(text);
+    row.appendChild(edit);
+    list.appendChild(row);
+  });
 }
 
 function renderEvents() {

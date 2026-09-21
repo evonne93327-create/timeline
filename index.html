@@ -31,27 +31,62 @@
 </head>
 <body>
 
-<header class="topbar">
-  <button type="button" class="tl-badge" onclick="openTimelineModal()" title="切換時間軸">
-    <span class="tl-badge-icon" id="tlIcon">📜</span>
-    <span class="tl-badge-text">
-      <span class="tl-badge-name" id="tlName">主世界年表</span>
-      <span class="tl-badge-count" id="tlCount"></span>
-    </span>
-    <span class="tl-badge-caret">▾</span>
-  </button>
-  <button type="button" class="icon-btn" id="settingsBtn" onclick="openSettingsModal()" title="設定">⚙️</button>
-</header>
+<!-- 電腦版是「側邊欄 + 主區」，手機版只剩主區（側邊欄與桌面工具列都收起來，
+     改用頂部那條與右下角的浮動按鈕）。兩套共用同一份資料與同一批函式，
+     差別只在 CSS 顯示哪一組。 -->
+<div class="app">
 
-<main class="page">
-  <div class="axis" id="axis"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">時間軸</div>
+    <div class="sidebar-list" id="sidebarList"></div>
+    <button type="button" class="sidebar-add" onclick="openTimelineEditModal(null)">＋ 新增時間軸</button>
+    <div class="sidebar-foot">
+      <button type="button" class="sidebar-settings" onclick="openSettingsModal()">⚙️ 設定</button>
+    </div>
+  </aside>
 
-  <div class="empty" id="emptyState">
-    <div class="empty-icon">📜</div>
-    <div class="empty-title">這條時間軸還沒有事件</div>
-    <div class="empty-text">按右下角的 ＋ 開始記下第一件事。<br>時間可以直接寫「舊曆340年」這種，不必是真實日期。</div>
+  <div class="main">
+
+    <header class="topbar">
+      <button type="button" class="tl-badge" onclick="openTimelineModal()" title="切換時間軸">
+        <span class="tl-badge-icon" id="tlIcon">📜</span>
+        <span class="tl-badge-text">
+          <span class="tl-badge-name" id="tlName">主世界年表</span>
+          <span class="tl-badge-count" id="tlCount"></span>
+        </span>
+        <span class="tl-badge-caret">▾</span>
+      </button>
+      <button type="button" class="icon-btn" id="settingsBtn" onclick="openSettingsModal()" title="設定">⚙️</button>
+    </header>
+
+    <!-- 電腦版的標題列。名稱與「新增事件」擺在一起，不要像手機那樣
+         一個在左上角、一個在右下角隔著整個螢幕。 -->
+    <div class="deskbar">
+      <!-- 內層再包一次並置中：標題與「新增事件」要落在時間軸那一欄的正上方。
+           讓它貼齊整條橫列的兩端的話，標題在最左、內容在中間，看起來像
+           兩個不相干的東西。 -->
+      <div class="deskbar-inner">
+        <div class="deskbar-text">
+          <span class="deskbar-icon" id="tlIconDesk">📜</span>
+          <span class="deskbar-name" id="tlNameDesk">主世界年表</span>
+          <span class="deskbar-count" id="tlCountDesk"></span>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="openEventModal()">＋ 新增事件<kbd class="kbd">N</kbd></button>
+      </div>
+    </div>
+
+    <main class="page">
+      <div class="axis" id="axis"></div>
+
+      <div class="empty" id="emptyState">
+        <div class="empty-icon">📜</div>
+        <div class="empty-title">這條時間軸還沒有事件</div>
+        <div class="empty-text" id="emptyText"></div>
+      </div>
+    </main>
+
   </div>
-</main>
+</div>
 
 <button type="button" class="fab" onclick="openEventModal()" title="新增事件">＋</button>
 

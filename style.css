@@ -84,6 +84,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 /* ---------- 時間軸本體 ---------- */
 .page {
+  /* width:100% 是必要的，不是保險。
+
+     .main 是縱向的 flex 容器，.page 是它的項目。項目本來會被 stretch 撐滿
+     整個寬度，但「交叉軸上的 auto margin」會取消 stretch——於是 margin:0 auto
+     讓 .page 縮成內容寬度（實測 1440px 螢幕上只有 458px），max-width 那行
+     完全沒作用。畫面上看不太出來，因為卡片剛好把它撐開。 */
+  width: 100%;
   max-width: 760px;
   margin: 0 auto;
   padding: var(--sp-20) var(--sp-16) calc(var(--icon-44) + var(--sp-32) + var(--safe-b));
@@ -375,3 +382,158 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   .modal-actions .btn { flex: 1; }
   .modal-actions .btn-danger { flex: 0 0 auto; }
 }
+
+/* ==========================================================
+   電腦版
+
+   手機版是單欄 + 頂部列 + 右下角浮動按鈕。那套搬到 1440px 寬的螢幕上，
+   左半邊整片空著、⚙️ 被推到離標題一千多 px 的地方，而「新增事件」跟
+   它要加進去的那條時間軸隔著整個螢幕——都是把手機版直接放大的後果。
+
+   電腦版改成「側邊欄 + 主區」：時間軸清單常駐在左邊（切換一次點擊就好，
+   不用開彈窗），主區自己置中並限制寬度——行太長讀起來很累，把卡片拉到
+   1400px 寬不是「善用空間」。
+   ========================================================== */
+
+.app { display: flex; min-height: 100vh; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+/* 預設（手機）不顯示，由下面的媒體查詢打開 */
+.sidebar { display: none; }
+.deskbar { display: none; }
+
+@media (min-width: 900px) {
+  .topbar { display: none; }
+  .fab { display: none; }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 260px;
+    /* 側邊欄自己貼著視窗高度捲動，主區捲動時它不要跟著跑掉 */
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    padding: var(--sp-16) var(--sp-12);
+    gap: var(--sp-8);
+  }
+
+  .sidebar-head {
+    font-family: var(--font-display);
+    font-size: var(--fs-12);
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    padding: 0 var(--sp-8) var(--sp-4);
+  }
+
+  /* 時間軸很多的時候只有這一段捲動，「新增」與「設定」永遠留在看得到的地方 */
+  .sidebar-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--sp-4); }
+
+  .side-row {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-10);
+    width: 100%;
+    padding: var(--sp-10) var(--sp-10);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-align: left;
+  }
+  .side-row:hover { background: var(--bg-sunken); }
+  .side-row.is-active { background: var(--accent-light); border-color: var(--accent-line); }
+  .side-row-icon { flex: 0 0 auto; width: 1.5em; text-align: center; font-size: var(--fs-18); }
+  .side-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.4; }
+  .side-row-name {
+    font-weight: 700; font-size: var(--fs-14);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .side-row-meta { font-size: var(--fs-12); color: var(--text-muted); }
+
+  /* ✎ 平常不顯示，滑到那一列或用鍵盤走到時才出現——
+     每一列都掛著一個圖示會讓清單看起來很吵。 */
+  .side-row-edit {
+    flex: 0 0 auto;
+    width: var(--icon-24); height: var(--icon-24);
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: var(--fs-12);
+    opacity: 0;
+  }
+  .side-row:hover .side-row-edit,
+  .side-row:focus-within .side-row-edit { opacity: 1; }
+  .side-row-edit:hover { background: var(--bg-card); color: var(--text-primary); }
+
+  .sidebar-add,
+  .sidebar-settings {
+    width: 100%;
+    padding: var(--sp-10);
+    background: var(--bg-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: var(--fs-12);
+    font-weight: 700;
+    cursor: pointer;
+    text-align: left;
+  }
+  .sidebar-add:hover, .sidebar-settings:hover { border-color: var(--text-muted); }
+  .sidebar-foot { border-top: 1px solid var(--border-soft); padding-top: var(--sp-8); }
+
+  /* ---------- 主區的標題列 ---------- */
+  .deskbar {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    padding: var(--sp-16) var(--sp-24);
+    background: var(--bg-main);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  /* 跟 .axis 用同一組寬度，標題才會落在時間軸的正上方 */
+  .deskbar-inner {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-12);
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .deskbar-text { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: var(--sp-10); }
+  .deskbar-icon { font-size: var(--fs-20); }
+  .deskbar-name {
+    font-family: var(--font-display); font-size: var(--fs-22); font-weight: 700;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .deskbar-count { font-size: var(--fs-12); color: var(--text-muted); flex: 0 0 auto; }
+
+  /* 鍵盤提示。只在電腦版出現——手機上沒有 N 鍵可以按。 */
+  .kbd {
+    margin-left: var(--sp-8);
+    padding: 1px var(--sp-6);
+    border: 1px solid currentColor;
+    border-radius: var(--radius-sm);
+    font-size: var(--fs-10);
+    font-family: inherit;
+    opacity: 0.7;
+  }
+
+  /* 電腦版讓 .page 撐滿，置中的工作交給裡面的 .axis／.empty——
+     它們跟 .deskbar-inner 用同一組 max-width 與同樣的外層內距，
+     這樣標題列才會剛好落在時間軸那一欄的正上方。
+     .page 自己也限制寬度的話，就會變成「限制兩次」，兩邊的中心點對不上。 */
+  .page { max-width: none; padding: var(--sp-24) var(--sp-24) var(--sp-32); }
+  /* 限制行長。1400px 寬的卡片讀起來很累，讓它置中就好。 */
+  .axis, .empty { max-width: 720px; margin-left: auto; margin-right: auto; }
+}
+
+/* 側邊欄佔掉 260px 之後，剩下的空間要夠寬才值得再往外撐 */
+@media (min-width: 1280px) {
+  .axis, .empty, .deskbar-inner { max-width: 780px; }
+}
+
+.kbd { display: none; }
+@media (min-width: 900px) { .kbd { display: inline-block; } }

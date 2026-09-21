@@ -296,6 +296,189 @@ async function fresh(browser, vp) {
     await ctx.close();
   }
 
+  console.log('\n[10] 電腦版：該出現的出現、該收起來的收起來');
+  {
+    const shown = function(sel) {
+      return document.querySelector(sel) && getComputedStyle(document.querySelector(sel)).display !== 'none';
+    };
+    for (const [label, vp, wantDesktop] of [
+      ['1440px', { viewport: { width: 1440, height: 900 } }, true],
+      ['900px（分界上）', { viewport: { width: 900, height: 800 } }, true],
+      ['899px（分界下）', { viewport: { width: 899, height: 800 } }, false],
+      ['手機 390px', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }, false]
+    ]) {
+      const { ctx, page, errs } = await fresh(browser, vp);
+      const r = await page.evaluate(() => {
+        const vis = function(sel) {
+          const el = document.querySelector(sel);
+          return !!el && getComputedStyle(el).display !== 'none';
+        };
+        return { sidebar: vis('.sidebar'), deskbar: vis('.deskbar'),
+                 topbar: vis('.topbar'), fab: vis('.fab') };
+      });
+      if (wantDesktop) {
+        ok(label + '：側邊欄與桌面標題列出現', r.sidebar && r.deskbar, JSON.stringify(r));
+        ok(label + '：手機的頂部列與浮動按鈕收起來', !r.topbar && !r.fab, JSON.stringify(r));
+      } else {
+        ok(label + '：側邊欄與桌面標題列收起來', !r.sidebar && !r.deskbar, JSON.stringify(r));
+        ok(label + '：手機的頂部列與浮動按鈕出現', r.topbar && r.fab, JSON.stringify(r));
+      }
+      ok(label + '：沒有 JS 錯誤', errs.length === 0, errs.join(' | '));
+      await ctx.close();
+    }
+  }
+
+  console.log('\n[11] 電腦版：側邊欄可以直接切換時間軸');
+  {
+    const { ctx, page, errs } = await fresh(browser, { viewport: { width: 1440, height: 900 } });
+    const r = await page.evaluate(async () => {
+      openTimelineEditModal(null);
+      document.getElementById('tlNameInput').value = '外傳年表';
+      submitTimelineEdit();
+      await new Promise(r => setTimeout(r, 120));
+
+      const rows = [...document.querySelectorAll('.side-row')];
+      const names = rows.map(x => x.querySelector('.side-row-name').textContent);
+      const activeBefore = currentTimeline().name;
+
+      rows[0].click();   // 點回第一條
+      await new Promise(r => setTimeout(r, 120));
+      return {
+        names, activeBefore, activeAfter: currentTimeline().name,
+        // 側邊欄切換不該開彈窗——有空間直接點的時候，多開一層是多餘的
+        noModal: !document.querySelector('.modal-overlay.active'),
+        activeMarked: document.querySelectorAll('.side-row.is-active').length,
+        firstIsActive: document.querySelectorAll('.side-row')[0].classList.contains('is-active')
+      };
+    });
+    ok('側邊欄列出全部時間軸', r.names.length === 2, JSON.stringify(r.names));
+    ok('新增後側邊欄跟著更新', r.names.includes('外傳年表'), JSON.stringify(r.names));
+    ok('點側邊欄就切換', r.activeBefore === '外傳年表' && r.activeAfter === '主世界年表',
+       r.activeBefore + ' → ' + r.activeAfter);
+    ok('切換不需要開彈窗', r.noModal);
+    ok('只有一列被標成目前選中', r.activeMarked === 1 && r.firstIsActive, 'marked=' + r.activeMarked);
+
+    // ✎ 是開編輯，不該順便把時間軸切過去
+    const editOnly = await page.evaluate(async () => {
+      const rows = [...document.querySelectorAll('.side-row')];
+      const before = currentTimeline().name;
+      rows[1].querySelector('.side-row-edit').click();
+      await new Promise(r => setTimeout(r, 150));
+      return { before, after: currentTimeline().name,
+               modalOpen: document.getElementById('timelineEditModal').classList.contains('active'),
+               editing: document.getElementById('tlNameInput').value };
+    });
+    ok('按 ✎ 會開編輯視窗', editOnly.modalOpen);
+    ok('編輯的是那一列的時間軸', editOnly.editing === '外傳年表', editOnly.editing);
+    ok('按 ✎ 不會順便切換時間軸', editOnly.before === editOnly.after,
+       editOnly.before + ' → ' + editOnly.after);
+
+    // 改名之後側邊欄要跟著變
+    const renamed = await page.evaluate(async () => {
+      document.getElementById('tlNameInput').value = '改名後';
+      submitTimelineEdit();
+      await new Promise(r => setTimeout(r, 150));
+      return [...document.querySelectorAll('.side-row-name')].map(x => x.textContent);
+    });
+    ok('改名後側邊欄跟著更新', renamed.includes('改名後'), JSON.stringify(renamed));
+    ok('沒有 JS 錯誤', errs.length === 0, errs.join(' | '));
+    await ctx.close();
+  }
+
+  console.log('\n[12] 電腦版：N 鍵新增事件');
+  {
+    const { ctx, page, errs } = await fresh(browser, { viewport: { width: 1440, height: 900 } });
+    await page.keyboard.press('n');
+    await page.waitForTimeout(200);
+    ok('按 N 會開新增事件', await page.evaluate(() =>
+      document.getElementById('eventModal').classList.contains('active')));
+
+    // 彈窗裡打字時不能攔——N 是要填進欄位的字
+    await page.click('#evTitleInput');
+    await page.keyboard.type('nnn');
+    await page.waitForTimeout(150);
+    ok('在彈窗的輸入框裡打 N 只會打字', await page.evaluate(() =>
+      document.getElementById('evTitleInput').value === 'nnn'),
+      await page.evaluate(() => document.getElementById('evTitleInput').value));
+
+    // 有彈窗開著時再按也不該疊一層
+    await page.evaluate(() => document.getElementById('evTitleInput').blur());
+    await page.keyboard.press('n');
+    await page.waitForTimeout(150);
+    ok('已經有彈窗開著時按 N 不會再疊一層', await page.evaluate(() =>
+      document.querySelectorAll('.modal-overlay.active').length === 1),
+      await page.evaluate(() => document.querySelectorAll('.modal-overlay.active').length));
+
+    await page.evaluate(() => closeEventModal());
+    await page.waitForTimeout(150);
+
+    /* 「焦點在輸入框裡」這條要單獨測。上面那個案例其實是被「有彈窗開著」
+       那條先擋下來的，測不到這一條——現在所有輸入框都住在彈窗裡，所以
+       臨時放一個在頁面上，直接打那條規則。 */
+    const looseInput = await page.evaluate(async () => {
+      const inp = document.createElement('input');
+      inp.id = '__probe';
+      document.body.appendChild(inp);
+      inp.focus();
+      return document.activeElement.id;
+    });
+    ok('（測試前置）焦點在彈窗外的輸入框上', looseInput === '__probe', looseInput);
+    await page.keyboard.type('nn');
+    await page.waitForTimeout(150);
+    const loose = await page.evaluate(() => {
+      const r = { typed: document.getElementById('__probe').value,
+                  opened: document.getElementById('eventModal').classList.contains('active') };
+      document.getElementById('__probe').remove();
+      return r;
+    });
+    ok('在彈窗外的輸入框裡打 N 也只會打字', loose.typed === 'nn', JSON.stringify(loose));
+    ok('而且不會跳出新增事件', !loose.opened);
+
+    // 修飾鍵是別的快捷，不該被我們吃掉
+    await page.keyboard.press('Control+n');
+    await page.waitForTimeout(150);
+    ok('Ctrl+N 不會被攔走', await page.evaluate(() =>
+      !document.getElementById('eventModal').classList.contains('active')));
+    ok('沒有 JS 錯誤', errs.length === 0, errs.join(' | '));
+    await ctx.close();
+  }
+
+  console.log('\n[13] 電腦版：標題跟時間軸那一欄要對齊');
+  {
+    for (const [label, w] of [['1440px', 1440], ['1280px', 1280], ['1024px', 1024]]) {
+      const { ctx, page } = await fresh(browser, { viewport: { width: w, height: 900 } });
+      const r = await page.evaluate(() => {
+        const inner = document.querySelector('.deskbar-inner').getBoundingClientRect();
+        const axis = document.querySelector('.axis').getBoundingClientRect();
+        return { innerLeft: +inner.left.toFixed(1), axisLeft: +axis.left.toFixed(1),
+                 innerRight: +inner.right.toFixed(1), axisRight: +axis.right.toFixed(1) };
+      });
+      ok(label + '：標題列與時間軸左右對齊',
+         Math.abs(r.innerLeft - r.axisLeft) < 1 && Math.abs(r.innerRight - r.axisRight) < 1,
+         JSON.stringify(r));
+      await ctx.close();
+    }
+  }
+
+  console.log('\n[14] 空狀態的說明要跟著版面講對的話');
+  {
+    const { ctx, page } = await fresh(browser, { viewport: { width: 1440, height: 900 } });
+    const r = await page.evaluate(async () => {
+      appData.events = [];
+      renderAll();
+      await new Promise(r => setTimeout(r, 100));
+      return { desk: document.getElementById('emptyText').textContent,
+               shown: document.getElementById('emptyState').classList.contains('active') };
+    });
+    ok('沒有事件時顯示空狀態', r.shown);
+    ok('電腦版說「按上面的新增事件」', /上面/.test(r.desk) && !/右下角/.test(r.desk), r.desk);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(300);
+    const mob = await page.evaluate(() => document.getElementById('emptyText').textContent);
+    ok('拉窄之後改說「按右下角的 ＋」', /右下角/.test(mob), mob);
+    await ctx.close();
+  }
+
   await browser.close();
   console.log('\n通過 ' + pass + ' 項，失敗 ' + fail + ' 項');
   process.exit(fail ? 1 : 0);

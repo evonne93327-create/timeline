@@ -7,8 +7,47 @@ window.addEventListener("DOMContentLoaded", function() {
   renderAll();
   setupModalKeyboard();
   setupBackButton();
+  setupDesktopShortcuts();
+  setupViewportWatch();
   registerServiceWorker();
 });
+
+/* 電腦版的鍵盤快捷。只做一個：N ＝ 新增事件。
+
+   不用 Ctrl/Cmd 組合鍵：那些多半已經被瀏覽器佔走（Ctrl+N 是開新視窗，
+   攔不下來）。單鍵在「沒有在打字」的前提下是安全的，文字編輯器與
+   這類工具的慣例也是如此。
+
+   三種情況不能攔：焦點在輸入框裡（那是在打字）、有彈窗開著（N 可能是
+   要填進欄位的字），以及按著修飾鍵（那是別的快捷）。 */
+function setupDesktopShortcuts() {
+  document.addEventListener("keydown", function(e) {
+    if (e.key !== "n" && e.key !== "N") return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (document.querySelector(".modal-overlay.active")) return;
+
+    const el = document.activeElement;
+    const tag = el ? el.tagName : "";
+    if (tag === "INPUT" || tag === "TEXTAREA" || (el && el.isContentEditable)) return;
+
+    e.preventDefault();
+    openEventModal();
+  });
+}
+
+/* 視窗寬度跨過電腦版／手機版的分界時要重畫。
+
+   空狀態的說明文字會依版面講不同的話（電腦版沒有右下角那顆浮動按鈕），
+   不重畫的話把視窗從寬拉窄，畫面上會留著一句指著不存在按鈕的說明。
+   用 matchMedia 而不是 resize：只有真的跨過分界時才觸發，拖動視窗的
+   過程中不會被呼叫上百次。 */
+function setupViewportWatch() {
+  try {
+    window.matchMedia("(min-width: 900px)").addEventListener("change", function() {
+      renderTimelineBadge();
+    });
+  } catch (e) { /* 舊瀏覽器沒有 addEventListener，維持載入時的判斷 */ }
+}
 
 /* ==========================================================
    Service Worker
