@@ -296,39 +296,53 @@ async function fresh(browser, vp) {
     await ctx.close();
   }
 
-  console.log('\n[10] 電腦版：該出現的出現、該收起來的收起來');
+  console.log('\n[10] 分界兩側：該出現的出現、該收起來的收起來');
   {
-    const shown = function(sel) {
-      return document.querySelector(sel) && getComputedStyle(document.querySelector(sel)).display !== 'none';
-    };
+    /* 分界是 768px（跟工作台同一個值）。桌機是「直欄 + 常駐側欄 + 主區」，
+       手機是「頂欄 + 抽屜 + 底部橫列」，差別只在 CSS。 */
     for (const [label, vp, wantDesktop] of [
       ['1440px', { viewport: { width: 1440, height: 900 } }, true],
-      ['900px（分界上）', { viewport: { width: 900, height: 800 } }, true],
-      ['899px（分界下）', { viewport: { width: 899, height: 800 } }, false],
+      ['769px（分界上）', { viewport: { width: 769, height: 800 } }, true],
+      ['768px（分界下）', { viewport: { width: 768, height: 800 } }, false],
       ['手機 390px', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }, false]
     ]) {
       const { ctx, page, errs } = await fresh(browser, vp);
       const r = await page.evaluate(() => {
-        const vis = function(sel) {
+        const cs = function(sel) {
           const el = document.querySelector(sel);
-          return !!el && getComputedStyle(el).display !== 'none';
+          return el ? getComputedStyle(el) : null;
         };
-        return { sidebar: vis('.sidebar'), deskbar: vis('.deskbar'),
-                 topbar: vis('.topbar'), fab: vis('.fab') };
+        const vis = function(sel) { const c = cs(sel); return !!c && c.display !== 'none'; };
+        return {
+          hamburger: vis('.drawer-toggle'),
+          drawerClose: vis('.drawer-close'),
+          // 側欄在桌機是常駐的（static），手機上是浮在內容上的抽屜（fixed）
+          sidebarPos: cs('.sidebar').position,
+          // 直欄在桌機是直的、手機是橫的
+          railDir: cs('.app-rail').flexDirection,
+          bodyDir: getComputedStyle(document.body).flexDirection,
+          // 「新增事件」四個字在手機上收起來，只留 ＋
+          btnText: vis('.nav-action .btn-text')
+        };
       });
       if (wantDesktop) {
-        ok(label + '：側邊欄與桌面標題列出現', r.sidebar && r.deskbar, JSON.stringify(r));
-        ok(label + '：手機的頂部列與浮動按鈕收起來', !r.topbar && !r.fab, JSON.stringify(r));
+        ok(label + '：側欄常駐、直欄是直的', r.sidebarPos === 'static' && r.railDir === 'column',
+           JSON.stringify(r));
+        ok(label + '：抽屜的兩顆按鈕收起來', !r.hamburger && !r.drawerClose, JSON.stringify(r));
+        ok(label + '：「新增事件」的字看得到', r.btnText, JSON.stringify(r));
       } else {
-        ok(label + '：側邊欄與桌面標題列收起來', !r.sidebar && !r.deskbar, JSON.stringify(r));
-        ok(label + '：手機的頂部列與浮動按鈕出現', r.topbar && r.fab, JSON.stringify(r));
+        ok(label + '：側欄變抽屜、直欄變底部橫列',
+           r.sidebarPos === 'fixed' && r.railDir === 'row' && r.bodyDir === 'column',
+           JSON.stringify(r));
+        ok(label + '：抽屜的兩顆按鈕出現', r.hamburger && r.drawerClose, JSON.stringify(r));
+        ok(label + '：「新增事件」的字收起來只留 ＋', !r.btnText, JSON.stringify(r));
       }
       ok(label + '：沒有 JS 錯誤', errs.length === 0, errs.join(' | '));
       await ctx.close();
     }
   }
 
-  console.log('\n[11] 電腦版：側邊欄可以直接切換時間軸');
+  console.log('\n[11] 側欄可以直接切換時間軸');
   {
     const { ctx, page, errs } = await fresh(browser, { viewport: { width: 1440, height: 900 } });
     const r = await page.evaluate(async () => {
@@ -337,8 +351,8 @@ async function fresh(browser, vp) {
       submitTimelineEdit();
       await new Promise(r => setTimeout(r, 120));
 
-      const rows = [...document.querySelectorAll('.side-row')];
-      const names = rows.map(x => x.querySelector('.side-row-name').textContent);
+      const rows = [...document.querySelectorAll('.tl-node')];
+      const names = rows.map(x => x.querySelector('.tl-node-name').textContent);
       const activeBefore = currentTimeline().name;
 
       rows[0].click();   // 點回第一條
@@ -347,8 +361,8 @@ async function fresh(browser, vp) {
         names, activeBefore, activeAfter: currentTimeline().name,
         // 側邊欄切換不該開彈窗——有空間直接點的時候，多開一層是多餘的
         noModal: !document.querySelector('.modal-overlay.active'),
-        activeMarked: document.querySelectorAll('.side-row.is-active').length,
-        firstIsActive: document.querySelectorAll('.side-row')[0].classList.contains('is-active')
+        activeMarked: document.querySelectorAll('.tl-node.is-on').length,
+        firstIsActive: document.querySelectorAll('.tl-node')[0].classList.contains('is-on')
       };
     });
     ok('側邊欄列出全部時間軸', r.names.length === 2, JSON.stringify(r.names));
@@ -360,9 +374,9 @@ async function fresh(browser, vp) {
 
     // ✎ 是開編輯，不該順便把時間軸切過去
     const editOnly = await page.evaluate(async () => {
-      const rows = [...document.querySelectorAll('.side-row')];
+      const rows = [...document.querySelectorAll('.tl-node')];
       const before = currentTimeline().name;
-      rows[1].querySelector('.side-row-edit').click();
+      rows[1].querySelector('.tl-node-edit').click();
       await new Promise(r => setTimeout(r, 150));
       return { before, after: currentTimeline().name,
                modalOpen: document.getElementById('timelineEditModal').classList.contains('active'),
@@ -378,9 +392,45 @@ async function fresh(browser, vp) {
       document.getElementById('tlNameInput').value = '改名後';
       submitTimelineEdit();
       await new Promise(r => setTimeout(r, 150));
-      return [...document.querySelectorAll('.side-row-name')].map(x => x.textContent);
+      return [...document.querySelectorAll('.tl-node-name')].map(x => x.textContent);
     });
     ok('改名後側邊欄跟著更新', renamed.includes('改名後'), JSON.stringify(renamed));
+
+    /* 從側欄或頂欄進編輯視窗，按取消就該回到原來的畫面。
+       無條件回清單的話會變成「按了取消反而多跳出一個視窗」。
+       從清單點進去的才要回清單——那是使用者原本待的地方。 */
+    const cancelFromSidebar = await page.evaluate(async () => {
+      document.querySelector('.tl-node .tl-node-edit').click();
+      await new Promise(r => setTimeout(r, 150));
+      closeTimelineEditModal();
+      await new Promise(r => setTimeout(r, 150));
+      return [...document.querySelectorAll('.modal-overlay.active')].map(m => m.id);
+    });
+    ok('從側欄的 ✎ 取消後不會冒出清單', cancelFromSidebar.length === 0,
+       JSON.stringify(cancelFromSidebar));
+
+    const cancelFromChip = await page.evaluate(async () => {
+      document.querySelector('.nav-chip').click();
+      await new Promise(r => setTimeout(r, 150));
+      closeTimelineEditModal();
+      await new Promise(r => setTimeout(r, 150));
+      return [...document.querySelectorAll('.modal-overlay.active')].map(m => m.id);
+    });
+    ok('從頂欄名牌取消後不會冒出清單', cancelFromChip.length === 0, JSON.stringify(cancelFromChip));
+
+    const cancelFromList = await page.evaluate(async () => {
+      openTimelineModal();
+      await new Promise(r => setTimeout(r, 150));
+      document.querySelector('#timelineList .icon-btn').click();
+      await new Promise(r => setTimeout(r, 150));
+      closeTimelineEditModal();
+      await new Promise(r => setTimeout(r, 150));
+      return [...document.querySelectorAll('.modal-overlay.active')].map(m => m.id);
+    });
+    ok('從清單點進去的取消後回清單',
+       cancelFromList.length === 1 && cancelFromList[0] === 'timelineModal',
+       JSON.stringify(cancelFromList));
+
     ok('沒有 JS 錯誤', errs.length === 0, errs.join(' | '));
     await ctx.close();
   }
@@ -443,39 +493,228 @@ async function fresh(browser, vp) {
     await ctx.close();
   }
 
-  console.log('\n[13] 電腦版：標題跟時間軸那一欄要對齊');
+  console.log('\n[13] 內容欄在主區裡置中');
   {
+    /* 舊版面是「標題列與時間軸那一欄左右對齊」。版面換成工作台那套之後
+       頂欄是整條滿版的，對齊的對象不存在了——現在守的是另一件事：
+       內容限制了寬度（行太長讀不動），限制完要置中，不能靠左讓右半邊空著。 */
     for (const [label, w] of [['1440px', 1440], ['1280px', 1280], ['1024px', 1024]]) {
       const { ctx, page } = await fresh(browser, { viewport: { width: w, height: 900 } });
       const r = await page.evaluate(() => {
-        const inner = document.querySelector('.deskbar-inner').getBoundingClientRect();
+        const area = document.querySelector('.content-area').getBoundingClientRect();
         const axis = document.querySelector('.axis').getBoundingClientRect();
-        return { innerLeft: +inner.left.toFixed(1), axisLeft: +axis.left.toFixed(1),
-                 innerRight: +inner.right.toFixed(1), axisRight: +axis.right.toFixed(1) };
+        return {
+          leftGap: +(axis.left - area.left).toFixed(1),
+          rightGap: +(area.right - axis.right).toFixed(1),
+          axisWidth: +axis.width.toFixed(1),
+          areaWidth: +area.width.toFixed(1)
+        };
       });
-      ok(label + '：標題列與時間軸左右對齊',
-         Math.abs(r.innerLeft - r.axisLeft) < 1 && Math.abs(r.innerRight - r.axisRight) < 1,
-         JSON.stringify(r));
+      ok(label + '：內容欄左右留白一樣', Math.abs(r.leftGap - r.rightGap) < 1, JSON.stringify(r));
+      ok(label + '：內容有限制寬度', r.axisWidth <= 820 && r.axisWidth > 0, JSON.stringify(r));
       await ctx.close();
     }
   }
 
-  console.log('\n[14] 空狀態的說明要跟著版面講對的話');
+  console.log('\n[14] 空狀態要指向真的存在的那顆按鈕');
   {
+    /* 「新增事件」現在是頂欄右邊那一顆，手機與桌機同一顆（手機上只是把字
+       收起來），所以兩邊講同一句話。以前右下角那顆浮動按鈕已經沒有了，
+       說明裡再出現「右下角」就是指著一個不存在的東西。 */
     const { ctx, page } = await fresh(browser, { viewport: { width: 1440, height: 900 } });
     const r = await page.evaluate(async () => {
       appData.events = [];
       renderAll();
       await new Promise(r => setTimeout(r, 100));
-      return { desk: document.getElementById('emptyText').textContent,
-               shown: document.getElementById('emptyState').classList.contains('active') };
+      return { text: document.getElementById('emptyText').textContent,
+               shown: document.getElementById('emptyState').classList.contains('active'),
+               fab: !!document.querySelector('.fab') };
     });
     ok('沒有事件時顯示空狀態', r.shown);
-    ok('電腦版說「按上面的新增事件」', /上面/.test(r.desk) && !/右下角/.test(r.desk), r.desk);
+    ok('桌機指向右上角', /右上角/.test(r.text) && !/右下角/.test(r.text), r.text);
+    ok('右下角那顆浮動按鈕已經不存在', !r.fab);
+
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(300);
     const mob = await page.evaluate(() => document.getElementById('emptyText').textContent);
-    ok('拉窄之後改說「按右下角的 ＋」', /右下角/.test(mob), mob);
+    ok('手機也指向右上角', /右上角/.test(mob) && !/右下角/.test(mob), mob);
+    await ctx.close();
+  }
+
+  /* 彈窗的樣式是刻意跟姊妹專案「世界觀架構工作台」對齊的。這組守的是
+     「有沒有走鐘」，不是「好不好看」——寬度、遮罩、按鈕的類別名稱這幾樣
+     一旦被改掉，兩個 app 擺在一起馬上就看得出來，但單看這一邊不會發現。 */
+  console.log('\n[15] 彈窗樣式跟世界觀架構工作台對齊');
+  {
+    const { ctx, page, errs } = await fresh(browser, { viewport: { width: 1280, height: 900 } });
+
+    const widths = await page.evaluate(() => {
+      const out = {};
+      [['settingsModal', 440], ['appearanceModal', 400], ['updateModal', 420], ['storageModal', 460]]
+        .forEach(function(pair) {
+          const m = document.getElementById(pair[0]);
+          m.classList.add('active');
+          out[pair[0]] = { got: m.querySelector('.modal-card').getBoundingClientRect().width, want: pair[1] };
+          m.classList.remove('active');
+        });
+      return out;
+    });
+    Object.keys(widths).forEach(function(id) {
+      ok(id + ' 的寬度是 ' + widths[id].want, Math.abs(widths[id].got - widths[id].want) < 1,
+         JSON.stringify(widths[id]));
+    });
+
+    const look = await page.evaluate(() => {
+      const card = document.querySelector('#settingsModal .modal-card');
+      const ov = document.getElementById('settingsModal');
+      ov.classList.add('active');
+      const cs = getComputedStyle(card), os = getComputedStyle(ov);
+      const r = {
+        blur: os.backdropFilter || os.webkitBackdropFilter,
+        overlayBg: os.backgroundColor,
+        pad: cs.paddingTop,
+        titleSize: getComputedStyle(card.querySelector('.modal-title')).fontSize,
+        /* .btn-ghost 這個類別已經沒有樣式了（改叫 .btn-secondary）。
+           HTML 裡要是還留著，那顆按鈕會變成沒有邊框沒有底色的裸按鈕。 */
+        ghostLeft: document.querySelectorAll('.btn-ghost').length
+      };
+      ov.classList.remove('active');
+      return r;
+    });
+    ok('遮罩有背景模糊', /blur/.test(look.blur || ''), look.blur);
+    ok('遮罩是暖調的深褐不是純黑', look.overlayBg === 'rgba(42, 36, 32, 0.45)', look.overlayBg);
+    ok('卡片內距是 22px', look.pad === '22px', look.pad);
+    ok('彈窗標題是 16px', look.titleSize === '16px', look.titleSize);
+    ok('沒有殘留的 .btn-ghost', look.ghostLeft === 0, String(look.ghostLeft));
+
+    // 外觀的說明只有「跟隨系統」時才有字，空的時候不該佔高度
+    const hint = await page.evaluate(async () => {
+      setThemePref('light');
+      openAppearanceModal();
+      await new Promise(r => setTimeout(r, 60));
+      const el = document.getElementById('themeAutoHint');
+      /* 看 display 而不是量高度：空的 block 本來就是 0 高，但它還在 flex
+         流裡，上面那道 14px 的 gap 一樣會算進去——留一條看不出原因的空隙。
+         :empty 那條規則要的是「整個拿掉」。 */
+      const empty = getComputedStyle(el).display;
+      setThemePref('auto');
+      await new Promise(r => setTimeout(r, 60));
+      return { empty: empty, filled: el.getBoundingClientRect().height, text: el.textContent };
+    });
+    ok('外觀的說明空的時候整條收起來', hint.empty === 'none', JSON.stringify(hint));
+    ok('選「跟隨系統」才有說明', hint.filled > 0 && /目前是/.test(hint.text), JSON.stringify(hint));
+
+    ok('沒有 JS 錯誤', errs.length === 0, errs.join(' | '));
+    await ctx.close();
+  }
+
+  /* 跳到姊妹 app 的入口。兩個 app 在線上是同一個網域下的兄弟資料夾
+     （.../timeline/ 與 .../world_2/），所以路徑一定要是相對的 ../world_2/：
+     寫死完整網址的話本機開發跳不過去，repo 改名也會爛掉。 */
+  console.log('\n[16] 切換到世界觀架構工作台的入口');
+  {
+    const { ctx, page, errs } = await fresh(browser, { viewport: { width: 1440, height: 900 } });
+    const r = await page.evaluate(() => {
+      const links = Array.from(document.querySelectorAll('a[href]'))
+        .filter(a => /world_2/.test(a.getAttribute('href')));
+      const rail = document.querySelector('.app-rail a.rail-btn');
+      const row = document.querySelector('#settingsModal a.settings-row');
+      openSettingsModal();
+      return {
+        count: links.length,
+        hrefs: links.map(a => a.getAttribute('href')),
+        railDecoration: rail ? getComputedStyle(rail).textDecorationLine : null,
+        rowDecoration: row ? getComputedStyle(row).textDecorationLine : null,
+        // 直欄上那顆 <a> 要跟旁邊的 <button> 一樣大，不然一排圓圈會大小不一
+        railSize: rail ? Math.round(rail.getBoundingClientRect().width) : 0,
+        btnSize: Math.round(document.querySelector('.rail-btn.is-on').getBoundingClientRect().width)
+      };
+    });
+    ok('直欄與設定各有一個入口', r.count === 2, JSON.stringify(r.hrefs));
+    ok('用相對路徑 ../world_2/', r.hrefs.every(h => h === '../world_2/'), JSON.stringify(r.hrefs));
+    ok('直欄那顆沒有底線', r.railDecoration === 'none', String(r.railDecoration));
+    ok('設定裡那一列沒有底線', r.rowDecoration === 'none', String(r.rowDecoration));
+    ok('直欄那顆跟旁邊的按鈕一樣大', r.railSize > 0 && r.railSize === r.btnSize,
+       r.railSize + ' vs ' + r.btnSize);
+    ok('沒有 JS 錯誤', errs.length === 0, errs.join(' | '));
+    await ctx.close();
+  }
+
+  /* 手機版的時間軸抽屜。桌機上側欄是常駐的，這一組只在手機尺寸下有意義。 */
+  console.log('\n[17] 手機版：時間軸抽屜');
+  {
+    const { ctx, page, errs } = await fresh(browser);
+    const closed = await page.evaluate(() => {
+      const sb = document.getElementById('sidebar');
+      return { open: sb.classList.contains('drawer-open'),
+               offscreen: sb.getBoundingClientRect().right <= 0,
+               overlay: getComputedStyle(document.getElementById('sidebarOverlay')).visibility };
+    });
+    ok('一開始抽屜是收起來的', !closed.open && closed.offscreen, JSON.stringify(closed));
+    ok('一開始遮罩看不到', closed.overlay === 'hidden', closed.overlay);
+
+    const opened = await page.evaluate(async () => {
+      document.querySelector('.drawer-toggle').click();
+      await new Promise(r => setTimeout(r, 400));
+      const sb = document.getElementById('sidebar');
+      return { open: sb.classList.contains('drawer-open'),
+               left: Math.round(sb.getBoundingClientRect().left),
+               overlay: getComputedStyle(document.getElementById('sidebarOverlay')).visibility,
+               // 抽屜不該蓋住底部那條橫列，不然開著時沒辦法按 ⚙️ 或切 app
+               bottom: Math.round(sb.getBoundingClientRect().bottom),
+               railTop: Math.round(document.querySelector('.app-rail').getBoundingClientRect().top) };
+    });
+    ok('按 ☰ 抽屜滑出來', opened.open && opened.left === 0, JSON.stringify(opened));
+    ok('遮罩跟著出現', opened.overlay === 'visible', opened.overlay);
+    ok('抽屜沒有蓋住底部橫列', opened.bottom <= opened.railTop, JSON.stringify(opened));
+
+    /* 這裡一定要用 openSidebarDrawer() 明講，不要再按一次 ☰——上一段已經把
+       抽屜打開了，再 toggle 一次是關掉它，後面那句「選完抽屜自己收起來」
+       就會在抽屜本來就關著的情況下通過，等於沒測。 */
+    const picked = await page.evaluate(async () => {
+      openTimelineEditModal(null);
+      document.getElementById('tlNameInput').value = '外傳年表';
+      submitTimelineEdit();
+      await new Promise(r => setTimeout(r, 150));
+      openSidebarDrawer();
+      await new Promise(r => setTimeout(r, 350));
+      const openedBefore = document.getElementById('sidebar').classList.contains('drawer-open');
+      const rows = [...document.querySelectorAll('.tl-node')];
+      rows[0].click();
+      await new Promise(r => setTimeout(r, 350));
+      return { openedBefore, active: currentTimeline().name,
+               open: document.getElementById('sidebar').classList.contains('drawer-open') };
+    });
+    ok('（測試前置）抽屜是開著的', picked.openedBefore);
+    ok('在抽屜裡選了就切過去', picked.active === '主世界年表', picked.active);
+    ok('選完抽屜自己收起來', !picked.open);
+
+    /* 返回鍵要收抽屜，不是離開 app。
+
+       抽屜沒被算進歷史層數的話，history.back() 會真的把頁面導走，
+       接下來的 evaluate 會拋 "Execution context was destroyed" 整批中斷。
+       包起來當成失敗回報，不要讓一條斷言炸掉整個檔案。 */
+    await page.evaluate(async () => {
+      openSidebarDrawer();
+      await new Promise(r => setTimeout(r, 350));
+    });
+    const beforeBack = await page.evaluate(() =>
+      document.getElementById('sidebar').classList.contains('drawer-open'));
+    ok('（測試前置）抽屜是開著的', beforeBack);
+
+    await page.evaluate(() => history.back());
+    await page.waitForTimeout(500);
+    let back;
+    try {
+      back = await page.evaluate(() => ({
+        after: document.getElementById('sidebar').classList.contains('drawer-open'),
+        stillHere: !!document.getElementById('sidebar')
+      }));
+    } catch (e) {
+      back = { after: true, stillHere: false, err: '頁面被導走了：' + e.message.split('\n')[0] };
+    }
+    ok('按返回鍵收掉抽屜而不是離開 app', !back.after && back.stillHere, JSON.stringify(back));
+    ok('沒有 JS 錯誤', errs.length === 0, errs.join(' | '));
     await ctx.close();
   }
 

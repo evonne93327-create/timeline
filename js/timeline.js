@@ -33,36 +33,30 @@ function renderAll() {
   renderEvents();
 }
 
-/* 手機版的頂部與電腦版的標題列顯示的是同一組東西，只是位置不同。
-   兩邊一起更新，免得切換視窗寬度時其中一邊停在舊資料上。 */
+/* 頂欄那顆時間軸名牌。手機與桌機共用同一份 DOM（版面是 CSS 折的），
+   所以這裡只要更新一組元素。 */
 function renderTimelineBadge() {
   const tl = currentTimeline();
   const n = eventsOfCurrentTimeline().length;
-  const countText = n ? n + " 件事" : "";
 
-  [["tlIcon", "tlName", "tlCount"], ["tlIconDesk", "tlNameDesk", "tlCountDesk"]]
-    .forEach(function(ids) {
-      const icon = document.getElementById(ids[0]);
-      const name = document.getElementById(ids[1]);
-      const count = document.getElementById(ids[2]);
-      if (icon) icon.textContent = tl ? (tl.icon || "📜") : "📜";
-      if (name) name.textContent = tl ? tl.name : "";
-      if (count) count.textContent = countText;
-    });
+  const icon = document.getElementById("tlIcon");
+  const name = document.getElementById("tlName");
+  const count = document.getElementById("tlCount");
+  if (icon) icon.textContent = tl ? (tl.icon || "📜") : "📜";
+  if (name) name.textContent = tl ? tl.name : "";
+  if (count) count.textContent = n ? n + " 件事" : "";
 
-  /* 空狀態的說明文字要跟著版面走：電腦版沒有右下角那顆浮動按鈕，
-     叫使用者去按一個看不到的東西只會讓人更困惑。 */
+  /* 空狀態的說明。新增事件的入口在頂欄右邊，手機與桌機是同一顆
+     （手機上只是把「新增事件」四個字收起來），所以兩邊講同一句話就好。 */
   const empty = document.getElementById("emptyText");
   if (empty) {
-    const desktop = window.matchMedia("(min-width: 900px)").matches;
-    empty.innerHTML = (desktop ? "按上面的「＋ 新增事件」" : "按右下角的 ＋") +
-      "開始記下第一件事。<br>時間可以直接寫「舊曆340年」這種，不必是真實日期。";
+    empty.innerHTML = "按右上角的「＋」開始記下第一件事。<br>" +
+      "時間可以直接寫「舊曆340年」這種，不必是真實日期。";
   }
 }
 
-/* 電腦版的側邊欄。手機版整塊被 CSS 收起來，但還是照樣重畫——
-   重畫幾個 DOM 節點的成本遠低於「忘記重畫」造成的錯亂（例如在手機上
-   改了名字，轉橫向變成電腦版時側邊欄還寫著舊名字）。 */
+/* 側欄的時間軸清單。列的樣式照工作台的目錄列：小圓角、平常沒有底色，
+   選中才是強調色。 */
 function renderSidebar() {
   const list = document.getElementById("sidebarList");
   if (!list) return;
@@ -74,29 +68,28 @@ function renderSidebar() {
 
     const row = document.createElement("button");
     row.type = "button";
-    row.className = "side-row" + (on ? " is-active" : "");
+    row.className = "tl-node" + (on ? " is-on" : "");
     row.setAttribute("aria-current", on ? "true" : "false");
     row.onclick = function() {
       if (tl.id !== activeTimelineId) { activeTimelineId = tl.id; saveData(); renderAll(); }
+      // 手機上抽屜是蓋在內容上的，選完不收起來就看不到選了什麼
+      closeSidebarDrawer();
     };
 
     const icon = document.createElement("span");
-    icon.className = "side-row-icon";
+    icon.className = "tl-node-icon";
     icon.textContent = tl.icon || "📜";
 
-    const text = document.createElement("span");
-    text.className = "side-row-text";
     const nameEl = document.createElement("span");
-    nameEl.className = "side-row-name";
+    nameEl.className = "tl-node-name";
     nameEl.textContent = tl.name;
-    const metaEl = document.createElement("span");
-    metaEl.className = "side-row-meta";
-    metaEl.textContent = n + " 件事";
-    text.appendChild(nameEl);
-    text.appendChild(metaEl);
+
+    const countEl = document.createElement("span");
+    countEl.className = "tl-node-count";
+    countEl.textContent = n ? n + " 件事" : "";
 
     const edit = document.createElement("span");
-    edit.className = "side-row-edit";
+    edit.className = "tl-node-edit";
     edit.title = "編輯這條時間軸";
     edit.textContent = "✎";
     /* 用 span 而不是巢狀的 <button>：按鈕裡面不能再放按鈕（HTML 不合法，
@@ -104,7 +97,8 @@ function renderSidebar() {
     edit.onclick = function(e) { e.stopPropagation(); openTimelineEditModal(tl.id); };
 
     row.appendChild(icon);
-    row.appendChild(text);
+    row.appendChild(nameEl);
+    row.appendChild(countEl);
     row.appendChild(edit);
     list.appendChild(row);
   });
@@ -235,7 +229,7 @@ function renderTimelineList() {
     edit.className = "icon-btn";
     edit.title = "重新命名";
     edit.textContent = "✎";
-    edit.onclick = function() { openTimelineEditModal(tl.id); };
+    edit.onclick = function() { openTimelineEditModal(tl.id, true); };
 
     row.appendChild(pick);
     row.appendChild(edit);
@@ -250,7 +244,15 @@ function switchTimeline(id) {
   closeTimelineModal();
 }
 
-function openTimelineEditModal(id) {
+/* fromList：是不是從「時間軸清單」那個彈窗點進來的。
+
+   關掉的時候要不要回清單，取決於這件事。舊版面只有清單一個入口，
+   所以無條件回清單也沒錯；現在側欄的 ✎、側欄的 ＋、頂欄的名牌都會
+   開這個視窗，無條件回清單就變成「按了取消反而多跳出一個視窗」。 */
+let tlEditFromList = false;
+
+function openTimelineEditModal(id, fromList) {
+  tlEditFromList = !!fromList;
   editingTimelineId = id || null;
   const tl = id ? appData.timelines.find(t => t.id === id) : null;
 
@@ -268,7 +270,7 @@ function openTimelineEditModal(id) {
 
 function closeTimelineEditModal() {
   closeModal("timelineEditModal");
-  openTimelineModal();   // 從清單點進來的，關掉要回清單
+  if (tlEditFromList) openTimelineModal();   // 從清單點進來的才回清單
 }
 
 let pickedIcon = "📜";

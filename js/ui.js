@@ -22,6 +22,35 @@ function isTouchPrimary() {
   } catch (e) { return "ontouchstart" in window; }
 }
 
+/* ---------- 手機版的時間軸抽屜 ----------
+
+   桌機上側欄是常駐的，這幾個函式在那邊等於沒作用（CSS 讓 .drawer-open
+   沒有任何效果）。不去判斷「現在是不是手機」是刻意的：判斷寫在 CSS 的
+   媒體查詢裡就好，JS 再判一次就會有兩份會走鐘的真相。 */
+
+function sidebarDrawerOpen() {
+  const el = document.getElementById("sidebar");
+  return !!el && el.classList.contains("drawer-open");
+}
+
+function openSidebarDrawer() {
+  const el = document.getElementById("sidebar");
+  const ov = document.getElementById("sidebarOverlay");
+  if (el) el.classList.add("drawer-open");
+  if (ov) ov.classList.add("active");
+}
+
+function closeSidebarDrawer() {
+  const el = document.getElementById("sidebar");
+  const ov = document.getElementById("sidebarOverlay");
+  if (el) el.classList.remove("drawer-open");
+  if (ov) ov.classList.remove("active");
+}
+
+function toggleSidebarDrawer() {
+  if (sidebarDrawerOpen()) closeSidebarDrawer(); else openSidebarDrawer();
+}
+
 /* ---------- 彈窗 ---------- */
 
 function openModal(id) {
@@ -131,12 +160,14 @@ let uiHistoryDepth = 0;     // 我們往歷史推了幾筆
 let uiHistoryPending = 0;   // 還有幾次 popstate 是 history.go() 自己的回音
 let uiHistoryTimer = null;
 
-function openModalCount() {
-  return document.querySelectorAll(".modal-overlay.active").length;
+/* 返回鍵該收掉的東西有幾層。抽屜也算一層——它蓋住半個畫面，
+   在手機上看到它的第一個反射動作一樣是按返回鍵。 */
+function openLayerCount() {
+  return document.querySelectorAll(".modal-overlay.active").length + (sidebarDrawerOpen() ? 1 : 0);
 }
 
 function syncUiHistory() {
-  const n = openModalCount();
+  const n = openLayerCount();
   if (n === uiHistoryDepth) return;
 
   if (n > uiHistoryDepth) {
@@ -166,13 +197,15 @@ function setupBackButton() {
 
   window.addEventListener("popstate", function() {
     if (uiHistoryPending > 0) { uiHistoryPending--; return; }
+    /* 彈窗疊在抽屜上面，所以先收彈窗、再收抽屜。
+       兩個都沒開就讓它正常往回走（真的離開 app）。 */
     const modal = topMostModal();
-    if (!modal) return;   // 沒有彈窗開著就讓它正常往回走（真的離開 app）
+    if (!modal && !sidebarDrawerOpen()) return;
 
     /* 先把計數減掉：瀏覽器已經幫我們吐掉那一筆了，
        這裡再去 history.go() 會多退一步，直接跳出 app。 */
     if (uiHistoryDepth > 0) uiHistoryDepth--;
-    dismissModal(modal);
+    if (modal) dismissModal(modal); else closeSidebarDrawer();
     // 收尾：關不掉的會被補回一筆，關掉之後又開了別的也在這裡對齊
     scheduleUiHistorySync();
   });

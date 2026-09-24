@@ -13,6 +13,9 @@
   --bg-main: #F3EEE2;
   --bg-card: #FFFDF8;
   --bg-rail: #EAE3D2;
+  /* 側欄與頂欄的底色。跟卡片同色是刻意的：工作台那邊整個外框
+     （目錄欄 + 頂欄 + 內容區）是同一片白，只靠 1px 的線分欄。 */
+  --bg-sidebar: #FFFDF8;
   --bg-sunken: #ECE5D4;
   --border: #E1D7C1;
   --border-soft: #EBE2CC;
@@ -28,6 +31,7 @@
   --accent-text: #AC3B2A;
   --accent-light: #F6E2DA;
   --accent-line: #E6BBAC;
+  --accent-glow: rgba(172,59,42,0.35);   /* 直欄上「目前這個」那顆的光暈 */
 
   --danger: #B23A2E;
   --danger-hover: #93291F;
@@ -56,18 +60,25 @@
 
   --fs-10: 10px;
   --fs-12: 12px;
+  --fs-13: 13px;   /* 彈窗裡的主要說明段落（跟世界觀架構工作台同一級） */
   --fs-14: 14px;
   --fs-16: 16px;
   --fs-18: 18px;
   --fs-20: 20px;
   --fs-22: 22px;
 
-  /* ---------- 間距 ---------- */
-  --sp-2: 2px;  --sp-4: 4px;  --sp-6: 6px;  --sp-8: 8px;
-  --sp-10: 10px; --sp-12: 12px; --sp-14: 14px; --sp-16: 16px;
-  --sp-20: 20px; --sp-24: 24px; --sp-28: 28px; --sp-32: 32px;
+  /* ---------- 間距 ----------
+     5／7／22 這三個值是為了跟世界觀架構工作台的彈窗完全對齊才有的
+     （按鈕內距 7/14、圖示與文字之間 5、彈窗卡片內距 22）。
+     看起來很零碎，但那邊的彈窗就是照這組數字做的，改成 6/8/20
+     兩邊擺在一起就看得出高矮不一樣。 */
+  --sp-2: 2px;  --sp-3: 3px;  --sp-4: 4px;  --sp-5: 5px;  --sp-6: 6px;
+  --sp-7: 7px;  --sp-8: 8px;  --sp-10: 10px; --sp-12: 12px;
+  --sp-14: 14px; --sp-16: 16px; --sp-20: 20px; --sp-22: 22px;
+  --sp-24: 24px; --sp-28: 28px; --sp-32: 32px;
 
   /* ---------- 圓角 ---------- */
+  --radius-4: 4px;     /* 側欄裡的列。比 sm 再小一號，一整排才不會看起來胖胖的 */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -76,14 +87,23 @@
   --radius-full: 50%;
 
   /* ---------- 圖示尺寸 ---------- */
+  --icon-20: 20px;
   --icon-24: 24px;
   --icon-28: 28px;
   --icon-40: 40px;
   --icon-44: 44px;
 
-  --fab-bottom: calc(16px + var(--safe-b));
-  --z-fab: 50;
+  /* 手機版直欄變成底部橫列，高度固定 56px（再加上瀏海／home bar 的安全區） */
+  --rail-h: 56px;
+  --rail-w: 62px;
+  --sidebar-w: 280px;
+  --bar-h: 54px;
+
+  --z-nav: 30;
+  --z-rail: 45;
   --z-popover: 60;
+  --z-overlay: 93;
+  --z-drawer: 94;
   --z-modal: 100;
 }
 
@@ -101,6 +121,7 @@
   --bg-main: #1E1A16;
   --bg-card: #26221C;
   --bg-rail: #15120F;
+  --bg-sidebar: #26221C;
   /* 日間的 sunken 比卡片暗（凹進去）。深色底沿用同一個邏輯會讓控制項
      比周圍更暗，看起來像洞不像按鈕，所以夜間反過來做成「浮起來」。 */
   --bg-sunken: #383128;
@@ -117,6 +138,7 @@
   --accent-text: #D2775F;
   --accent-light: #3B2520;
   --accent-line: #71392D;
+  --accent-glow: rgba(0,0,0,0.45);
   --on-accent: #1C0D09;
 
   --danger: #E4786C;

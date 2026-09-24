@@ -31,51 +31,64 @@
 </head>
 <body>
 
-<!-- 電腦版是「側邊欄 + 主區」，手機版只剩主區（側邊欄與桌面工具列都收起來，
-     改用頂部那條與右下角的浮動按鈕）。兩套共用同一份資料與同一批函式，
-     差別只在 CSS 顯示哪一組。 -->
-<div class="app">
+<!-- 版面照姊妹專案「世界觀架構工作台」那一套：
+     最左邊一條圖示直欄、中間目錄側欄、右邊主區（頂欄 + 內容）。
+     手機版直欄轉成底部橫列、側欄轉成抽屜——同一份 DOM，只有 CSS 換位置，
+     所以不會有「兩套版面各自漏更新」的問題。 -->
 
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-head">時間軸</div>
-    <div class="sidebar-list" id="sidebarList"></div>
-    <button type="button" class="sidebar-add" onclick="openTimelineEditModal(null)">＋ 新增時間軸</button>
-    <div class="sidebar-foot">
-      <button type="button" class="sidebar-settings" onclick="openSettingsModal()">⚙️ 設定</button>
+<!-- 最左側直欄：切換 app 與設定 -->
+<aside class="app-rail" id="appRail">
+  <div class="rail-list">
+    <button type="button" class="rail-btn is-on" aria-current="page" title="時間軸（目前開著的）">📜</button>
+    <!-- 相對路徑：兩個 app 是同一個網域下的兄弟資料夾，寫死完整網址的話
+         本機開發跳不過去，repo 改名也會爛掉。 -->
+    <a class="rail-btn" href="../world_2/" title="世界觀架構工作台">🌍</a>
+  </div>
+  <button type="button" class="rail-btn rail-foot-btn" onclick="openSettingsModal()" title="設定">⚙️</button>
+</aside>
+
+<!-- 手機抽屜的遮罩。桌機永遠不顯示。 -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebarDrawer()"></div>
+
+<!-- 中間欄：時間軸清單 -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-top">
+    <span class="sidebar-title">時間軸</span>
+    <div class="sidebar-top-btns">
+      <button type="button" class="icon-sm-btn" onclick="openTimelineEditModal(null)" title="新增時間軸">＋</button>
+      <button type="button" class="icon-sm-btn drawer-close" onclick="closeSidebarDrawer()" title="關閉">✕</button>
     </div>
-  </aside>
+  </div>
+  <div class="sidebar-list" id="sidebarList"></div>
+  <div class="sidebar-foot">
+    <button type="button" class="btn btn-secondary btn-wide" onclick="openTimelineEditModal(null)">＋ 新增時間軸</button>
+  </div>
+</aside>
 
-  <div class="main">
-
-    <header class="topbar">
-      <button type="button" class="tl-badge" onclick="openTimelineModal()" title="切換時間軸">
-        <span class="tl-badge-icon" id="tlIcon">📜</span>
-        <span class="tl-badge-text">
-          <span class="tl-badge-name" id="tlName">主世界年表</span>
-          <span class="tl-badge-count" id="tlCount"></span>
-        </span>
-        <span class="tl-badge-caret">▾</span>
+<!-- 右側主區 -->
+<div class="main-layout">
+  <header class="top-nav">
+    <div class="nav-left">
+      <button type="button" class="nav-icon-btn drawer-toggle" id="drawerBtn"
+              onclick="toggleSidebarDrawer()" title="時間軸清單">☰</button>
+      <button type="button" class="nav-chip" onclick="openTimelineEditModal(activeTimelineId)"
+              title="改這條時間軸的名字或圖示">
+        <span class="nav-chip-icon" id="tlIcon">📜</span>
+        <span class="nav-chip-name" id="tlName">主世界年表</span>
       </button>
-      <button type="button" class="icon-btn" id="settingsBtn" onclick="openSettingsModal()" title="設定">⚙️</button>
-    </header>
-
-    <!-- 電腦版的標題列。名稱與「新增事件」擺在一起，不要像手機那樣
-         一個在左上角、一個在右下角隔著整個螢幕。 -->
-    <div class="deskbar">
-      <!-- 內層再包一次並置中：標題與「新增事件」要落在時間軸那一欄的正上方。
-           讓它貼齊整條橫列的兩端的話，標題在最左、內容在中間，看起來像
-           兩個不相干的東西。 -->
-      <div class="deskbar-inner">
-        <div class="deskbar-text">
-          <span class="deskbar-icon" id="tlIconDesk">📜</span>
-          <span class="deskbar-name" id="tlNameDesk">主世界年表</span>
-          <span class="deskbar-count" id="tlCountDesk"></span>
-        </div>
-        <button type="button" class="btn btn-primary" onclick="openEventModal()">＋ 新增事件<kbd class="kbd">N</kbd></button>
-      </div>
+      <span class="nav-count" id="tlCount"></span>
     </div>
 
-    <main class="page">
+    <div class="nav-right">
+      <button type="button" class="nav-action" onclick="openEventModal()" title="新增事件">
+        <span>＋</span><span class="btn-text">新增事件</span><kbd class="kbd">N</kbd>
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- 會捲動的那一層是這個，不是整頁：頂欄與兩條側欄要釘住不動。 -->
+    <div class="content-area">
       <div class="axis" id="axis"></div>
 
       <div class="empty" id="emptyState">
@@ -83,12 +96,9 @@
         <div class="empty-title">這條時間軸還沒有事件</div>
         <div class="empty-text" id="emptyText"></div>
       </div>
-    </main>
-
-  </div>
+    </div>
+  </main>
 </div>
-
-<button type="button" class="fab" onclick="openEventModal()" title="新增事件">＋</button>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -114,7 +124,7 @@
       <span class="field-label">排序值</span>
       <div class="field-row">
         <input type="number" id="evSortInput" class="input" step="1">
-        <button type="button" class="btn btn-ghost" onclick="guessSortFromWhen()">從時間猜</button>
+        <button type="button" class="btn btn-secondary" onclick="guessSortFromWhen()">從時間猜</button>
       </div>
       <!-- 為什麼會有這個欄位，要講清楚，否則使用者只會覺得莫名其妙 -->
       <span class="field-hint">年表的時間多半不是真實日期（「舊曆340年」），沒辦法直接比大小，所以另外用這個數字決定先後。數字小的排前面，留空會接在最後。</span>
@@ -133,7 +143,7 @@
     <div class="modal-actions">
       <button type="button" class="btn btn-danger" id="evDeleteBtn" onclick="deleteEvent()">刪除</button>
       <span class="spacer"></span>
-      <button type="button" class="btn btn-ghost" onclick="closeEventModal()">取消</button>
+      <button type="button" class="btn btn-secondary" onclick="closeEventModal()">取消</button>
       <button type="button" class="btn btn-primary" onclick="submitEvent()">儲存</button>
     </div>
   </div>
@@ -149,7 +159,7 @@
     <div class="tl-list" id="timelineList"></div>
     <div class="modal-actions">
       <span class="spacer"></span>
-      <button type="button" class="btn btn-primary" onclick="openTimelineEditModal(null)">＋ 新增時間軸</button>
+      <button type="button" class="btn btn-primary" onclick="openTimelineEditModal(null, true)">＋ 新增時間軸</button>
     </div>
   </div>
 </div>
@@ -175,7 +185,7 @@
     <div class="modal-actions">
       <button type="button" class="btn btn-danger" id="tlDeleteBtn" onclick="deleteTimeline()">刪除</button>
       <span class="spacer"></span>
-      <button type="button" class="btn btn-ghost" onclick="closeTimelineEditModal()">取消</button>
+      <button type="button" class="btn btn-secondary" onclick="closeTimelineEditModal()">取消</button>
       <button type="button" class="btn btn-primary" onclick="submitTimelineEdit()">儲存</button>
     </div>
   </div>
@@ -185,7 +195,7 @@
 <div class="modal-overlay" id="settingsModal">
   <div class="modal-card">
     <div class="modal-head">
-      <span class="modal-title">設定</span>
+      <span class="modal-title">⚙️ 設定</span>
       <button type="button" class="icon-btn" onclick="closeSettingsModal()" title="關閉">✕</button>
     </div>
 
@@ -225,6 +235,17 @@
           <span class="settings-row-desc">會取代目前全部的資料（匯入前自動先備份一份）</span>
         </span>
       </button>
+
+      <!-- 用 <a> 不用 <button>：這是真的換一個網頁，中鍵開新分頁、
+           長按複製網址這些瀏覽器本來就會的事才不會被吃掉。 -->
+      <a class="settings-row" href="../world_2/">
+        <span class="settings-row-icon">🌍</span>
+        <span class="settings-row-text">
+          <span class="settings-row-title">世界觀架構工作台</span>
+          <span class="settings-row-desc">姊妹 app：文檔目錄與關係白板（資料各自獨立）</span>
+        </span>
+        <span class="settings-row-go">›</span>
+      </a>
     </div>
 
     <p class="settings-note">資料只存在這台裝置的瀏覽器裡，沒有雲端。換手機或清除瀏覽器資料之前，記得先匯出備份。</p>
@@ -236,15 +257,15 @@
 <div class="modal-overlay" id="appearanceModal">
   <div class="modal-card">
     <div class="modal-head">
-      <span class="modal-title">外觀</span>
+      <span class="modal-title">🌓 外觀</span>
       <button type="button" class="icon-btn" onclick="closeAppearanceModal()" title="關閉">✕</button>
     </div>
     <div class="theme-choice" id="themeChoice">
       <button type="button" class="theme-opt" data-theme="light" onclick="setThemePref('light')">☀️ 日間</button>
       <button type="button" class="theme-opt" data-theme="dark" onclick="setThemePref('dark')">🌙 夜間</button>
-      <button type="button" class="theme-opt" data-theme="auto" onclick="setThemePref('auto')">🌓 跟隨系統</button>
+      <button type="button" class="theme-opt" data-theme="auto" onclick="setThemePref('auto')">🔄 跟隨系統</button>
     </div>
-    <p class="field-hint" id="themeAutoHint"></p>
+    <div class="settings-hint" id="themeAutoHint"></div>
   </div>
 </div>
 
@@ -255,11 +276,14 @@
       <span class="modal-title">⚠️ 存檔失敗</span>
       <button type="button" class="icon-btn" onclick="closeStorageModal()" title="關閉">✕</button>
     </div>
-    <p class="field-hint" id="storageDetail"></p>
+    <p class="modal-lead" id="storageDetail"></p>
+    <!-- 這行是固定的，不由 JS 決定：不管是哪一種存檔失敗，
+         「現在看到的東西關掉分頁就沒了」都成立，而且這是最要緊的一句。 -->
+    <p class="modal-warn">畫面上看到的內容還在，但只要關掉這個分頁就會消失。請先備份。</p>
     <p class="field-hint" id="storageHint"></p>
     <div class="modal-actions">
-      <span class="spacer"></span>
-      <button type="button" class="btn btn-primary" onclick="exportAll()">立刻匯出備份</button>
+      <button type="button" class="btn btn-primary btn-wide" onclick="exportAll()">💾 立刻匯出備份</button>
+      <button type="button" class="btn btn-secondary" onclick="closeStorageModal()">知道了</button>
     </div>
   </div>
 </div>
@@ -267,11 +291,11 @@
 <!-- ========== 有新版本 ========== -->
 <div class="modal-overlay" id="updateModal">
   <div class="modal-card">
-    <div class="modal-head"><span class="modal-title">✨ 有新版本</span></div>
+    <span class="modal-title">✨ 有新版本</span>
     <p class="field-hint">程式已經更新，重新載入之後才會套用。資料都存在這台裝置上，重新載入不會遺失。</p>
     <div class="modal-actions">
       <span class="spacer"></span>
-      <button type="button" class="btn btn-ghost" onclick="dismissUpdateModal()">稍後再說</button>
+      <button type="button" class="btn btn-secondary" onclick="dismissUpdateModal()">稍後再說</button>
       <button type="button" class="btn btn-primary" onclick="reloadForUpdate()">重新載入</button>
     </div>
   </div>

@@ -35,17 +35,17 @@ function setupDesktopShortcuts() {
   });
 }
 
-/* 視窗寬度跨過電腦版／手機版的分界時要重畫。
+/* 視窗寬度跨過手機／桌機的分界時，把抽屜收掉。
 
-   空狀態的說明文字會依版面講不同的話（電腦版沒有右下角那顆浮動按鈕），
-   不重畫的話把視窗從寬拉窄，畫面上會留著一句指著不存在按鈕的說明。
-   用 matchMedia 而不是 resize：只有真的跨過分界時才觸發，拖動視窗的
-   過程中不會被呼叫上百次。 */
+   抽屜開著的時候把視窗拉寬（或手機轉向），.drawer-open 會留在那裡——
+   桌機的 CSS 不理它，所以畫面看起來正常，但遮罩還在，點哪裡都沒反應。
+
+   用 matchMedia 而不是 resize：只有真的跨過分界時才觸發，
+   拖動視窗的過程中不會被呼叫上百次。分界跟 CSS 同一個值。 */
 function setupViewportWatch() {
   try {
-    window.matchMedia("(min-width: 900px)").addEventListener("change", function() {
-      renderTimelineBadge();
-    });
+    window.matchMedia("(max-width: 768px), (max-height: 500px)")
+      .addEventListener("change", function() { closeSidebarDrawer(); });
   } catch (e) { /* 舊瀏覽器沒有 addEventListener，維持載入時的判斷 */ }
 }
 

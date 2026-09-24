@@ -5,7 +5,7 @@
    改動任何 SHELL 裡的檔案時記得把 VERSION 往上加，否則舊快取不會被清掉。
    ========================================================== */
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = 'timeline-' + VERSION;
 
 const SHELL = [
