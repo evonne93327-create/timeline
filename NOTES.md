@@ -16,8 +16,8 @@
 | | |
 |---|---|
 | 線上位置 | https://evonne93327-create.github.io/timeline/ |
-| main | `1049793` |
-| service worker | **v3** |
+| main | `b813561` |
+| service worker | **v4** |
 | 分支流程 | 沒有，直接在 main 上開發 |
 
 ### 這個 app 沒有雲端
