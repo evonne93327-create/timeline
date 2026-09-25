@@ -721,13 +721,16 @@ a.settings-row { text-decoration: none; color: var(--text-primary); }
 
   .main-layout { flex: 1; min-height: 0; }
 
-  /* 側欄變抽屜。bottom 讓開底部那條橫列——蓋住的話抽屜開著時
-     就沒辦法直接按 ⚙️ 或切換 app。 */
+  /* 側欄變抽屜：貼著左邊、整個螢幕高。
+
+     不要只拉到底部橫列的上緣——那樣抽屜下面會露出半截橫列，看起來像
+     少切了一塊。工作台那邊是整片蓋下去的，橫列比抽屜窄（85vw 上限 320px），
+     右邊那顆 ⚙️ 本來就還露在外面，按得到。 */
   .sidebar {
     position: fixed;
     left: 0;
     top: 0;
-    bottom: calc(var(--rail-h) + var(--safe-b));
+    bottom: 0;
     height: auto;
     width: 85vw;
     max-width: 320px;

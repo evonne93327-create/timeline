@@ -73,7 +73,7 @@
 | `body` 的 `height:100dvh` 擺在 `100vh` 後面 | 手機網址列縮放時 `vh` 不會跟著變，底部橫列會被蓋掉一半 |
 | `body { overflow: hidden }` | 會捲的是 `.sidebar-list` 與 `.content-area`。整頁一起捲的話，捲到一半連「現在在哪條時間軸」都看不到 |
 | `.main-layout { min-width: 0 }` | flex 項目預設是 `min-width:auto`，縮不回去；長標題會把主區推寬，橫向捲軸就冒出來了 |
-| 抽屜的 `bottom: calc(var(--rail-h) + var(--safe-b))` | 讓開底部橫列。蓋住的話抽屜開著時沒辦法按 ⚙️ 或切 app |
+| 抽屜是 `top:0; bottom:0`（整個螢幕高） | 只拉到底部橫列上緣的話，抽屜下面會露出半截橫列，看起來像少切了一塊。橫列比抽屜寬（85vw 上限 320px），右邊那顆 ⚙️ 本來就還露在外面，按得到 |
 | `.tl-node` 基底那圈 `1px solid transparent` | 選中時會多一條 1px 的邊，沒先佔位整列會往下跳一格 |
 | 手機版 `.rail-foot-btn` 把 `margin-top:auto` 換成 `margin-left:auto` | 直向是推到最下面，折成橫列要推到最右邊 |
 
@@ -215,7 +215,7 @@ world_2 的 Google Drive OAuth redirect 跟 Supabase 的允許網址是綁死網
 
 ```bash
 python3 -m http.server 8800 &
-node tests/browser.test.js      # 124 項
+node tests/browser.test.js      # 125 項
 ```
 
 Playwright 在這個環境的路徑：
@@ -243,7 +243,7 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
 | 14 | 空狀態指向真的存在的那顆按鈕 |
 | 15 | 彈窗樣式沒有跟 world_2 走鐘（寬度、遮罩、內距、殘留的舊類別名） |
 | 16 | 切換到 world_2 的入口（相對路徑、沒有連結底線、直欄上的大小） |
-| 17 | 手機抽屜（滑出、遮罩、不蓋住底部橫列、選完收起來、返回鍵） |
+| 17 | 手機抽屜（滑出、遮罩、整個螢幕高、選完收起來、返回鍵） |
 
 **WebKit 裝不起來**（proxy 擋掉 `cdn.playwright.dev`），所以 Safari／iOS
 專屬的問題只能靠使用者實機回報。
