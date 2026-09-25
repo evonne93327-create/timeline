@@ -660,13 +660,22 @@ async function fresh(browser, vp) {
       return { open: sb.classList.contains('drawer-open'),
                left: Math.round(sb.getBoundingClientRect().left),
                overlay: getComputedStyle(document.getElementById('sidebarOverlay')).visibility,
-               // 抽屜不該蓋住底部那條橫列，不然開著時沒辦法按 ⚙️ 或切 app
+               /* 抽屜是整個螢幕高的（跟工作台一樣）。只拉到底部橫列上緣的話，
+                  抽屜下面會露出半截橫列，看起來像少切了一塊。 */
+               top: Math.round(sb.getBoundingClientRect().top),
                bottom: Math.round(sb.getBoundingClientRect().bottom),
-               railTop: Math.round(document.querySelector('.app-rail').getBoundingClientRect().top) };
+               viewportH: window.innerHeight,
+               // 橫列比抽屜寬，右邊那顆 ⚙️ 要還露在抽屜外面，開著時按得到
+               railBtnLeft: Math.round(
+                 document.querySelector('.rail-foot-btn').getBoundingClientRect().left),
+               drawerRight: Math.round(sb.getBoundingClientRect().right) };
     });
     ok('按 ☰ 抽屜滑出來', opened.open && opened.left === 0, JSON.stringify(opened));
     ok('遮罩跟著出現', opened.overlay === 'visible', opened.overlay);
-    ok('抽屜沒有蓋住底部橫列', opened.bottom <= opened.railTop, JSON.stringify(opened));
+    ok('抽屜是整個螢幕高的', opened.top === 0 && opened.bottom === opened.viewportH,
+       JSON.stringify(opened));
+    ok('底部橫列的 ⚙️ 還露在抽屜外面', opened.railBtnLeft >= opened.drawerRight,
+       JSON.stringify(opened));
 
     /* 這裡一定要用 openSidebarDrawer() 明講，不要再按一次 ☰——上一段已經把
        抽屜打開了，再 toggle 一次是關掉它，後面那句「選完抽屜自己收起來」
